@@ -1,0 +1,124 @@
+@page "/dashboard"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject NavigationManager Nav
+
+<PageTitle>Dashboard — UniCheck</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title-text">
+            <i class="fa fa-gauge-high me-2"></i>Dashboard
+        </h2>
+        <p class="page-subtitle">Lịch dạy hôm nay — @DateTime.Now.ToString("dddd, dd/MM/yyyy")</p>
+    </div>
+    <div class="page-actions">
+        <span class="badge badge-info">
+            <i class="fa fa-calendar me-1"></i>@_schedules.Count lớp hôm nay
+        </span>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="stats-row">
+    <StatCard Icon="fa-chalkboard-teacher" Label="Lớp hôm nay"
+              Value="@_schedules.Count.ToString()" Color="primary" />
+    <StatCard Icon="fa-users" Label="Tổng sinh viên"
+              Value="@_totalStudents.ToString()" Color="success" />
+    <StatCard Icon="fa-clock" Label="Sắp bắt đầu"
+              Value="@_upcomingCount.ToString()" Color="warning" />
+    <StatCard Icon="fa-check-circle" Label="Đã điểm danh"
+              Value="@_doneCount.ToString()" Color="info" />
+</div>
+
+<!-- Schedule List -->
+<div class="card-panel">
+    <div class="panel-header">
+        <h5 class="panel-title">
+            <i class="fa fa-list-ul me-2"></i>Lịch Dạy Hôm Nay
+        </h5>
+    </div>
+    <div class="panel-body">
+        @if (_schedules.Count == 0)
+        {
+            <div class="empty-state">
+                <i class="fa fa-calendar-times fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Không có lịch dạy hôm nay</p>
+            </div>
+        }
+        else
+        {
+            <div class="schedule-list">
+                @foreach (var s in _schedules)
+                {
+                    <div class="schedule-card @(s.IsSessionActive ? "active-session" : "")">
+                        <div class="schedule-time">
+                            <span class="time-start">@s.StartTime</span>
+                            <span class="time-sep">—</span>
+                            <span class="time-end">@s.EndTime</span>
+                        </div>
+                        <div class="schedule-info">
+                            <h6 class="course-name">@s.CourseName</h6>
+                            <div class="schedule-meta">
+                                <span><i class="fa fa-users me-1"></i>@s.GroupCode</span>
+                                <span><i class="fa fa-door-open me-1"></i>@s.RoomName</span>
+                                <span><i class="fa fa-user-tie me-1"></i>@s.StudentCount SV</span>
+                            </div>
+                        </div>
+                        <div class="schedule-action">
+                            @if (s.IsSessionActive)
+                            {
+                                <span class="badge badge-live pulse-badge">
+                                    <i class="fa fa-circle me-1"></i>ĐANG ĐIỂM DANH
+                                </span>
+                                <a href="/session/@s.ScheduleId" class="btn btn-sm btn-success mt-2">
+                                    <i class="fa fa-eye me-1"></i>Xem phiên
+                                </a>
+                            }
+                            else if (s.IsDone)
+                            {
+                                <span class="badge badge-done">
+                                    <i class="fa fa-check me-1"></i>Hoàn thành
+                                </span>
+                                <a href="/session/@s.SessionId/detail" class="btn btn-sm btn-outline-secondary mt-2">
+                                    <i class="fa fa-list me-1"></i>Chi tiết
+                                </a>
+                            }
+                            else
+                            {
+                                <a href="/session/@s.ScheduleId" class="btn btn-primary btn-start">
+                                    <i class="fa fa-play me-2"></i>Bắt đầu điểm danh
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@inject AuthenticationStateProvider AuthStateProvider
+@inject unicheck_backend.Services.ScheduleService ScheduleService
+
+@code {
+    private List<unicheck_backend.Services.DashboardScheduleDto> _schedules = new();
+    private int _totalStudents => _schedules.Sum(s => s.StudentCount);
+    private int _upcomingCount => _schedules.Count(s => !s.IsSessionActive && !s.IsDone);
+    private int _doneCount     => _schedules.Count(s => s.IsDone);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var lecturerIdClaim = user.FindFirst("LecturerId");
+            if (lecturerIdClaim != null && int.TryParse(lecturerIdClaim.Value, out int lecturerId))
+            {
+                _schedules = await ScheduleService.GetDashboardSchedulesAsync(lecturerId);
+            }
+        }
+    }
+}

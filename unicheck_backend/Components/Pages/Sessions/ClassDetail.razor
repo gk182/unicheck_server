@@ -1,0 +1,182 @@
+@page "/session/{SessionId:int}/detail"
+@inject AttendanceService AttService
+@inject ExportService ExportService
+@inject AuthenticationStateProvider AuthProvider
+@inject IJSRuntime JS
+@inject ILogger<ClassDetail> Logger
+
+<PageTitle>Chi Tiết Điểm Danh — UniCheck</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title-text">
+            <i class="fa fa-list-check me-2"></i>Chi Tiết Điểm Danh
+        </h2>
+        <p class="page-subtitle">@_courseName — @_date</p>
+    </div>
+    <div class="page-actions">
+        <a href="/dashboard" class="btn btn-outline-secondary me-2">
+            <i class="fa fa-arrow-left me-1"></i>Quay lại
+        </a>
+        <button class="btn btn-success" @onclick="ExportExcel" disabled="@_exporting">
+            @if (_exporting)
+            {
+                <span class="spinner-border spinner-border-sm me-2"></span>
+                <span>Đang xuất...</span>
+            }
+            else
+            {
+                <i class="fa fa-file-excel me-2"></i>
+                <span>Xuất Excel</span>
+            }
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-danger"><i class="fa fa-exclamation-triangle me-2"></i>@_error</div>
+}
+
+@if (_loading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+        <p class="text-muted mt-2">Đang tải...</p>
+    </div>
+}
+else
+{
+    <!-- Summary Stats -->
+    <div class="stats-row mb-4">
+        <StatCard Icon="fa-users"    Label="Sĩ số"    Value="@_total.ToString()"   Color="primary" />
+        <StatCard Icon="fa-check"    Label="Có mặt"   Value="@_present.ToString()" Color="success" />
+        <StatCard Icon="fa-clock"    Label="Đi muộn"  Value="@_late.ToString()"    Color="warning" />
+        <StatCard Icon="fa-times"    Label="Vắng"     Value="@_absent.ToString()"  Color="danger" />
+        <StatCard Icon="fa-file-alt" Label="Có phép"  Value="@_excused.ToString()" Color="info" />
+    </div>
+
+    <!-- Attendance Table -->
+    <div class="card-panel">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="fa fa-table me-2"></i>Danh Sách Điểm Danh</h5>
+            <div class="panel-filters">
+                <select class="form-select form-select-sm w-auto" @bind="_filterStatus">
+                    <option value="">Tất cả</option>
+                    <option value="PRESENT">Có mặt</option>
+                    <option value="LATE">Đi muộn</option>
+                    <option value="ABSENT">Vắng</option>
+                    <option value="EXCUSED">Có phép</option>
+                </select>
+                <input type="text" class="form-control form-control-sm" placeholder="Tìm sinh viên..."
+                       @bind="_searchQuery" @bind:event="oninput" style="width:200px" />
+            </div>
+        </div>
+        <AttendanceTable Rows="_filteredRows" OnStatusChanged="HandleStatusChanged" />
+    </div>
+}
+
+@code {
+    [Parameter] public int SessionId { get; set; }
+
+    private bool   _loading   = true;
+    private bool   _exporting = false;
+    private string? _error;
+    private string _courseName  = "";
+    private string _date        = "";
+    private string _filterStatus = "";
+    private string _searchQuery  = "";
+
+    private int _total   => _rows.Count;
+    private int _present => _rows.Count(r => r.Status == "PRESENT");
+    private int _late    => _rows.Count(r => r.Status == "LATE");
+    private int _absent  => _rows.Count(r => r.Status == "ABSENT");
+    private int _excused => _rows.Count(r => r.Status == "EXCUSED");
+
+    private List<AttendanceRowModel> _rows = new();
+
+    private List<AttendanceRowModel> _filteredRows => _rows
+        .Where(r => (string.IsNullOrEmpty(_filterStatus) || r.Status == _filterStatus)
+                 && (string.IsNullOrEmpty(_searchQuery)  ||
+                     r.StudentId.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                     r.FullName.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)))
+        .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        _error   = null;
+        try
+        {
+            var detail = await AttService.GetSessionDetail(SessionId);
+            _courseName = detail.CourseName;
+            _date       = detail.Date;
+
+            // Map AttendanceRowDto → AttendanceRowModel (dùng chung với AttendanceTable.razor)
+            _rows = detail.Rows.Select(r => new AttendanceRowModel
+            {
+                StudentId        = r.StudentId,
+                FullName         = r.FullName,
+                Status           = r.Status,
+                CheckInTime      = r.CheckInTime,
+                FaceConfidence   = r.FaceConfidence,
+                LocationVerified = r.LocationVerified,
+                Note             = r.Note,
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Lỗi load session detail");
+            _error = ex.Message;
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task HandleStatusChanged((string studentId, string newStatus) args)
+    {
+        // Cập nhật UI ngay (optimistic)
+        var row = _rows.FirstOrDefault(r => r.StudentId == args.studentId);
+        if (row != null) row.Status = args.newStatus;
+
+        // Lưu DB
+        try
+        {
+            if (Enum.TryParse<unicheck_backend.Models.Enums.AttendanceStatus>(args.newStatus, out var parsed))
+                await AttService.UpdateStatus(SessionId, args.studentId, parsed);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Lỗi cập nhật trạng thái điểm danh");
+            _error = ex.Message;
+            // Rollback UI
+            if (row != null) await LoadData();
+        }
+    }
+
+    private async Task ExportExcel()
+    {
+        _exporting = true;
+        _error     = null;
+        try
+        {
+            var bytes    = await ExportService.ExportSessionAsync(SessionId);
+            var base64   = Convert.ToBase64String(bytes);
+            var fileName = $"diemdanh_{_date.Replace("/", "-")}.xlsx";
+
+            // Trigger browser download via JS interop
+            await JS.InvokeVoidAsync("downloadFromBase64", base64, fileName,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Lỗi xuất Excel");
+            _error = "Lỗi xuất file Excel: " + ex.Message;
+        }
+        finally { _exporting = false; }
+    }
+}

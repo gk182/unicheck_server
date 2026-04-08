@@ -1,0 +1,66 @@
+@* StudentCard.razor - Hiển thị thông tin 1 SV đã check-in trong LiveSession *@
+<div class="student-card-item @StatusClass">
+    <div class="student-card-avatar">
+        @if (Student.AvatarUrl != null)
+        {
+            <img src="@Student.AvatarUrl" alt="@Student.FullName" />
+        }
+        else
+        {
+            <span class="avatar-initials">@Initials</span>
+        }
+    </div>
+    <div class="student-card-body">
+        <div class="student-card-header-row">
+            <span class="student-card-name">@Student.FullName</span>
+            <span class="student-card-time">@Student.CheckInTime.ToString("HH:mm:ss")</span>
+        </div>
+        <div class="student-card-id">@Student.StudentId</div>
+        <div class="student-card-badges">
+            <span class="badge @StatusBadgeClass">@StatusText</span>
+            @if (Student.FaceVerified)
+            {
+                <span class="badge badge-face" title="Khuôn mặt xác thực">
+                    <i class="fa fa-face-smile me-1"></i>@(Student.FaceConfidence.HasValue ? $"{Student.FaceConfidence:P0}" : "✓")
+                </span>
+            }
+            @if (Student.LocationVerified)
+            {
+                <span class="badge badge-gps" title="GPS xác thực">
+                    <i class="fa fa-map-marker-alt me-1"></i>GPS ✓
+                </span>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CheckedInStudentInfo Student { get; set; } = null!;
+
+    private string Initials => string.Join("", Student.FullName.Split(' ')
+        .Where(w => !string.IsNullOrEmpty(w))
+        .TakeLast(2)
+        .Select(w => w[0].ToString().ToUpper()));
+
+    private string StatusClass => Student.Status switch
+    {
+        AttendanceStatus.PRESENT => "status-present",
+        AttendanceStatus.LATE    => "status-late",
+        _                        => ""
+    };
+
+    private string StatusBadgeClass => Student.Status switch
+    {
+        AttendanceStatus.PRESENT => "badge-present",
+        AttendanceStatus.LATE    => "badge-late",
+        _                        => "bg-secondary"
+    };
+
+    private string StatusText => Student.Status switch
+    {
+        AttendanceStatus.PRESENT => "Có mặt",
+        AttendanceStatus.LATE    => "Đi muộn",
+        AttendanceStatus.EXCUSED => "Có phép",
+        _                        => "Vắng"
+    };
+}

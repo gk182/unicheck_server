@@ -1,0 +1,181 @@
+@page "/leaves"
+@inject LeaveService LeaveService
+@inject AuthenticationStateProvider AuthProvider
+@inject ILogger<LeaveRequests> Logger
+
+<PageTitle>Đơn Xin Nghỉ — UniCheck</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title-text">
+            <i class="fa fa-file-alt me-2"></i>Đơn Xin Nghỉ
+        </h2>
+        <p class="page-subtitle">Quản lý đơn xin nghỉ của sinh viên</p>
+    </div>
+    <div class="page-actions">
+        <span class="badge badge-warning">
+            <i class="fa fa-clock me-1"></i>@_pending.Count đơn chờ duyệt
+        </span>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-danger"><i class="fa fa-exclamation-triangle me-2"></i>@_error</div>
+}
+
+<!-- Filter Tabs -->
+<div class="filter-tabs mb-4">
+    @foreach (var tab in new[] { ("", "Tất cả"), ("PENDING", "Chờ duyệt"), ("APPROVED", "Đã duyệt"), ("REJECTED", "Từ chối") })
+    {
+        <button class="filter-tab @(_activeTab == tab.Item1 ? "active" : "")"
+                @onclick="() => _activeTab = tab.Item1">
+            @tab.Item2
+            @if (tab.Item1 == "PENDING" && _pending.Count > 0)
+            {
+                <span class="tab-badge">@_pending.Count</span>
+            }
+        </button>
+    }
+</div>
+
+<!-- Leave Request List -->
+@if (_loading)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary"></div>
+        <p class="text-muted mt-2">Đang tải...</p>
+    </div>
+}
+else
+{
+    <div class="leave-list">
+        @foreach (var r in _filtered)
+        {
+            <div class="leave-card @r.Status.ToLower()">
+                <div class="leave-card-left">
+                    <div class="student-avatar-sm">
+                        <i class="fa fa-user-graduate"></i>
+                    </div>
+                    <div class="leave-info">
+                        <h6 class="student-name-sm">@r.StudentName <span class="student-id-sm">(@r.StudentId)</span></h6>
+                        <p class="leave-course">@r.CourseName — @r.SessionDate</p>
+                        <p class="leave-reason"><i class="fa fa-comment me-1"></i>@r.Reason</p>
+                        @if (!string.IsNullOrEmpty(r.AttachmentUrl))
+                        {
+                            <a href="@r.AttachmentUrl" target="_blank" class="text-info small">
+                                <i class="fa fa-paperclip me-1"></i>Xem tệp đính kèm
+                            </a>
+                        }
+                    </div>
+                </div>
+                <div class="leave-card-right">
+                    <span class="status-chip @r.Status.ToLower()">
+                        @StatusLabel(r.Status)
+                    </span>
+                    @if (r.Status == "PENDING")
+                    {
+                        <div class="leave-actions mt-2">
+                            <button class="btn btn-sm btn-success me-1"
+                                    @onclick="() => Approve(r.RequestId)"
+                                    disabled="@_processing">
+                                <i class="fa fa-check me-1"></i>Duyệt
+                            </button>
+                            <button class="btn btn-sm btn-danger"
+                                    @onclick="() => Reject(r.RequestId)"
+                                    disabled="@_processing">
+                                <i class="fa fa-times me-1"></i>Từ chối
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        @if (!_filtered.Any())
+        {
+            <div class="empty-state">
+                <i class="fa fa-inbox fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Không có đơn nào</p>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private string _activeTab = "";
+    private bool   _loading   = true;
+    private bool   _processing = false;
+    private string? _error;
+    private int    _lecturerId;
+
+    private List<LeaveRequestViewModel> _requests = new();
+    private List<LeaveRequestViewModel> _pending  => _requests.Where(r => r.Status == "PENDING").ToList();
+    private List<LeaveRequestViewModel> _filtered => _requests
+        .Where(r => string.IsNullOrEmpty(_activeTab) || r.Status == _activeTab).ToList();
+
+    private string StatusLabel(string s) => s switch
+    {
+        "PENDING"  => "⏳ Chờ duyệt",
+        "APPROVED" => "✅ Đã duyệt",
+        "REJECTED" => "❌ Từ chối",
+        _          => s
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var claim     = authState.User.FindFirst("LecturerId");
+        if (claim != null && int.TryParse(claim.Value, out int id))
+            _lecturerId = id;
+
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        _error   = null;
+        try
+        {
+            _requests = await LeaveService.GetByLecturerAsync(_lecturerId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Lỗi load đơn nghỉ");
+            _error = "Lỗi tải danh sách đơn xin nghỉ.";
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task Approve(int requestId)
+    {
+        _processing = true;
+        try
+        {
+            await LeaveService.ApproveAsync(requestId, _lecturerId);
+            var r = _requests.First(r => r.RequestId == requestId);
+            r.Status = "APPROVED";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally { _processing = false; }
+    }
+
+    private async Task Reject(int requestId)
+    {
+        _processing = true;
+        try
+        {
+            await LeaveService.RejectAsync(requestId, _lecturerId);
+            var r = _requests.First(r => r.RequestId == requestId);
+            r.Status = "REJECTED";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally { _processing = false; }
+    }
+}

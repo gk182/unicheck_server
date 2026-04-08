@@ -1,0 +1,185 @@
+@page "/classes/{ClassId:int}"
+@inject NavigationManager Nav
+@inject unicheck_backend.Services.ClassService ClassService
+
+<PageTitle>Chi Tiết Lớp — UniCheck</PageTitle>
+
+@if (_cls != null)
+{
+    <div class="page-header">
+        <div>
+            <h2 class="page-title-text">
+                <i class="fa fa-chalkboard me-2"></i>@_cls.CourseName
+            </h2>
+            <p class="page-subtitle">
+                @_cls.CourseCode &nbsp;·&nbsp; @_cls.GroupCode &nbsp;·&nbsp;
+                HK@_cls.Semester/@_cls.AcademicYear
+            </p>
+        </div>
+        <div class="page-actions">
+            <a href="/classes" class="btn btn-outline-secondary me-2">
+                <i class="fa fa-arrow-left me-1"></i>Quay lại
+            </a>
+            <button class="btn btn-success" @onclick="ExportExcel">
+                <i class="fa fa-file-excel me-2"></i>Xuất Excel
+            </button>
+        </div>
+    </div>
+
+    <!-- Class Meta -->
+    <div class="stats-row mb-4">
+        <StatCard Icon="fa-users"    Label="Sinh viên"   Value="@_cls.StudentCount.ToString()"  Color="primary" />
+        <StatCard Icon="fa-calendar" Label="Tổng buổi"   Value="@_cls.TotalSessions.ToString()" Color="info" />
+        <StatCard Icon="fa-check"    Label="Đã thực hiện" Value="@_cls.DoneSessions.ToString()"  Color="success" />
+        <StatCard Icon="fa-warning"  Label="SV nguy hiểm" Value="@_dangerCount.ToString()"       Color="danger" />
+    </div>
+
+    <!-- Session History (Pivoted Table) -->
+    <div class="card-panel">
+        <div class="panel-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <h5 class="panel-title mb-0"><i class="fa fa-table-cells me-2"></i>Điểm Danh Theo Từng Buổi</h5>
+                @if (_sessions.Count > _displayCount)
+                {
+                    <button class="btn btn-sm btn-outline-primary" @onclick="() => _showAllSessions = !_showAllSessions">
+                        @(_showAllSessions ? "Thu gọn" : $"Xem ({_sessions.Count}) buổi")
+                    </button>
+                }
+            </div>
+            <input type="text" class="form-control form-control-sm"
+                   placeholder="Tìm sinh viên..."
+                   @bind="_search" @bind:event="oninput"
+                   style="width: 200px" />
+        </div>
+        <div class="table-responsive">
+            <table class="pivot-table">
+                <thead>
+                    <tr>
+                        <th class="sticky-col">MSSV</th>
+                        <th class="sticky-col">Họ và Tên</th>
+                        @foreach (var s in _displaySessions)
+                        {
+                            <th class="text-center session-th" title="@s.Date (@s.StartTime)">
+                                Buổi @s.Number<br /><small>@s.DateShort</small>
+                            </th>
+                        }
+                        <th class="text-center">Có mặt</th>
+                        <th class="text-center">Vắng</th>
+                        <th class="text-center">Tỷ lệ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var sv in _filteredStudents)
+                    {
+                        int presentCount = sv.Records.Count(r => r == "P" || r == "L");
+                        double rate = _sessions.Count > 0 ? (double)presentCount / _sessions.Count * 100 : 0;
+                        bool isDanger = rate < 70;
+                        <tr class="@(isDanger ? "row-danger" : "")">
+                            <td class="sticky-col font-mono">@sv.StudentId</td>
+                            <td class="sticky-col sv-name-cell">@sv.FullName</td>
+                            @for (int i = _startIndex; i < sv.Records.Count; i++)
+                            {
+                                string rec = sv.Records[i];
+                                <td class="text-center att-cell @AttClass(rec)">
+                                    <span class="att-dot" title="@AttLabel(rec)">@AttIcon(rec)</span>
+                                </td>
+                            }
+                            <td class="text-center fw-semibold text-success">@presentCount</td>
+                            <td class="text-center fw-semibold text-danger">@(sv.Records.Count - presentCount)</td>
+                            <td class="text-center">
+                                <span class="rate-chip @(isDanger ? "danger" : "ok")">@($"{rate:F0}%")</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Leave Requests List -->
+    @if (_cls.LeaveRequests != null && _cls.LeaveRequests.Any())
+    {
+        <div class="card-panel mt-4">
+            <div class="panel-header">
+                <h5 class="panel-title text-warning"><i class="fa fa-envelope-open-text me-2"></i>Đơn Xin Nghỉ Cần Duyệt</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 120px;">Ngày nghỉ</th>
+                            <th style="width: 150px;">MSSV</th>
+                            <th>Sinh viên</th>
+                            <th>Lý do</th>
+                            <th style="width: 120px;">Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var lr in _cls.LeaveRequests)
+                        {
+                            <tr>
+                                <td class="fw-medium">@lr.Date</td>
+                                <td class="font-mono text-muted">@lr.StudentId</td>
+                                <td class="fw-semibold">@lr.FullName</td>
+                                <td>@lr.Reason</td>
+                                <td>
+                                    <span class="badge bg-warning text-dark py-2 px-3 rounded-pill">Chờ duyệt</span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="empty-state">
+        <i class="fa fa-spinner fa-spin fa-3x text-muted mb-3"></i>
+        <p>Đang tải dữ liệu lớp học...</p>
+    </div>
+}
+
+@code {
+    [Parameter] public int ClassId { get; set; }
+
+    private bool _showAllSessions = false;
+    private int _displayCount = 7;
+    private int _startIndex => _showAllSessions ? 0 : Math.Max(0, _sessions.Count - _displayCount);
+    private List<unicheck_backend.Services.SessionDetailDto> _displaySessions => _sessions.Skip(_startIndex).ToList();
+
+    private string _search = "";
+    private int _dangerCount => _filteredStudents.Count(sv =>
+    {
+        int p = sv.Records.Count(r => r == "P" || r == "L");
+        return _sessions.Count > 0 && (double)p / _sessions.Count * 100 < 70;
+    });
+
+    private List<unicheck_backend.Services.StudentPivotDto> _filteredStudents => _students
+        .Where(s => string.IsNullOrEmpty(_search)
+                 || s.FullName.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                 || s.StudentId.Contains(_search, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    private string AttClass(string r) => r switch { "P" => "att-present", "L" => "att-late", "A" => "att-absent", "E" => "att-excused", _ => "" };
+    private string AttLabel(string r) => r switch { "P" => "Có mặt", "L" => "Muộn", "A" => "Vắng", "E" => "Có phép", _ => "" };
+    private string AttIcon(string r)  => r switch { "P" => "✓", "L" => "~", "A" => "✗", "E" => "E", _ => "-" };
+
+    private void ExportExcel() { /* Sprint 8 - ClosedXML implementation later */ }
+
+    private unicheck_backend.Services.ClassDetailsDto? _cls;
+    private List<unicheck_backend.Services.SessionDetailDto> _sessions = new();
+    private List<unicheck_backend.Services.StudentPivotDto> _students = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var data = await ClassService.GetClassDetailsAsync(ClassId);
+        if (data != null)
+        {
+            _cls = data;
+            _sessions = data.Sessions;
+            _students = data.Students;
+        }
+    }
+}

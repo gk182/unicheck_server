@@ -1,0 +1,32 @@
+@inherits LayoutComponentBase
+
+<div class="admin-shell">
+    <!-- Sidebar -->
+    <aside class="app-sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">
+                <i class="fa fa-check-circle"></i>
+            </div>
+            <div class="brand-text">
+                <span class="brand-name">UniCheck</span>
+                <span class="brand-tagline">Hệ thống Điểm Danh</span>
+            </div>
+        </div>
+
+        <Sidebar />
+    </aside>
+
+    <!-- Main Content -->
+    <div class="app-content">
+        <Header />
+
+        <main class="main-content">
+            <div class="content-inner">
+                @Body
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Toast notification container -->
+<div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999;"></div>

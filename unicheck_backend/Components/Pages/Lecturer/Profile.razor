@@ -1,0 +1,209 @@
+@page "/profile"
+
+<PageTitle>Hồ Sơ — UniCheck</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title-text">
+            <i class="fa fa-user-circle me-2"></i>Hồ Sơ Giảng Viên
+        </h2>
+        <p class="page-subtitle">Thông tin cá nhân và bảo mật tài khoản</p>
+    </div>
+</div>
+
+<div class="profile-layout">
+    <!-- LEFT: Avatar + Basic Info -->
+    <div class="profile-sidebar-card">
+        <div class="profile-avatar">
+            <i class="fa fa-user-tie"></i>
+        </div>
+        <h5 class="profile-name">@_lecturer.FullName</h5>
+        <p class="profile-dept">@_lecturer.Department</p>
+        <div class="profile-badges">
+            <span class="badge badge-info">Giảng viên</span>
+            <span class="badge badge-success">Đang hoạt động</span>
+        </div>
+        <hr class="profile-divider" />
+        <div class="profile-stats">
+            <div class="profile-stat">
+                <span class="stat-val">3</span>
+                <span class="stat-lbl">Lớp học phần</span>
+            </div>
+            <div class="profile-stat">
+                <span class="stat-val">115</span>
+                <span class="stat-lbl">Sinh viên</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Forms -->
+    <div class="profile-forms">
+        <!-- Personal Info -->
+        <div class="card-panel mb-4">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fa fa-id-card me-2"></i>Thông Tin Cá Nhân</h5>
+                @if (!_editingInfo)
+                {
+                    <button class="btn btn-outline-primary btn-sm" @onclick="() => _editingInfo = true">
+                        <i class="fa fa-pen me-1"></i>Chỉnh sửa
+                    </button>
+                }
+            </div>
+            <div class="panel-body">
+                <div class="info-grid">
+                    <div class="info-row">
+                        <label class="info-label">Họ và tên</label>
+                        <span class="info-value">@_lecturer.FullName</span>
+                    </div>
+                    <div class="info-row">
+                        <label class="info-label">Mã giảng viên</label>
+                        <span class="info-value font-mono">@_lecturer.LecturerId</span>
+                    </div>
+                    <div class="info-row">
+                        <label class="info-label">Khoa / Bộ môn</label>
+                        <span class="info-value">@_lecturer.Department</span>
+                    </div>
+                    <div class="info-row">
+                        <label class="info-label">Email</label>
+                        @if (_editingInfo)
+                        {
+                            <input type="email" class="form-control form-control-sm"
+                                   @bind="_editEmail" style="max-width:280px" />
+                        }
+                        else
+                        {
+                            <span class="info-value">@_lecturer.Email</span>
+                        }
+                    </div>
+                    <div class="info-row">
+                        <label class="info-label">Số điện thoại</label>
+                        @if (_editingInfo)
+                        {
+                            <input type="tel" class="form-control form-control-sm"
+                                   @bind="_editPhone" style="max-width:180px" />
+                        }
+                        else
+                        {
+                            <span class="info-value">@_lecturer.Phone</span>
+                        }
+                    </div>
+                </div>
+                @if (_editingInfo)
+                {
+                    <div class="mt-3 d-flex gap-2">
+                        <button class="btn btn-primary btn-sm" @onclick="SaveInfo">
+                            <i class="fa fa-save me-1"></i>Lưu thay đổi
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm"
+                                @onclick="() => { _editingInfo = false; }">
+                            Hủy
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Change Password -->
+        <div class="card-panel">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fa fa-lock me-2"></i>Đổi Mật Khẩu</h5>
+            </div>
+            <div class="panel-body">
+                @if (_pwSuccess)
+                {
+                    <div class="alert alert-success d-flex align-items-center">
+                        <i class="fa fa-check-circle me-2"></i>
+                        Đổi mật khẩu thành công!
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(_pwError))
+                {
+                    <div class="alert alert-danger d-flex align-items-center">
+                        <i class="fa fa-exclamation-circle me-2"></i>@_pwError
+                    </div>
+                }
+                <div class="pw-form">
+                    <div class="form-group mb-3">
+                        <label class="form-label">Mật khẩu hiện tại</label>
+                        <input type="password" class="form-control" @bind="_currentPw"
+                               placeholder="Nhập mật khẩu hiện tại" />
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="form-label">Mật khẩu mới</label>
+                        <input type="password" class="form-control" @bind="_newPw"
+                               placeholder="Ít nhất 8 ký tự" />
+                    </div>
+                    <div class="form-group mb-4">
+                        <label class="form-label">Xác nhận mật khẩu mới</label>
+                        <input type="password" class="form-control" @bind="_confirmPw"
+                               placeholder="Nhập lại mật khẩu mới" />
+                    </div>
+                    <button class="btn btn-primary" @onclick="ChangePassword">
+                        <i class="fa fa-key me-2"></i>Đổi mật khẩu
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool _editingInfo = false;
+    private bool _pwSuccess  = false;
+    private string _pwError  = "";
+    private string _editEmail = "";
+    private string _editPhone = "";
+    private string _currentPw = "";
+    private string _newPw     = "";
+    private string _confirmPw = "";
+
+    // Mock data — Sprint 3 thay bằng AuthService / user từ ClaimsPrincipal
+    private LecturerProfile _lecturer = new()
+    {
+        LecturerId = "GV001",
+        FullName   = "TS. Nguyễn Văn Minh",
+        Department = "Khoa Công nghệ Thông tin",
+        Email      = "minhgv@uni.edu.vn",
+        Phone      = "0912 345 678"
+    };
+
+    protected override void OnInitialized()
+    {
+        _editEmail = _lecturer.Email;
+        _editPhone = _lecturer.Phone;
+    }
+
+    private void SaveInfo()
+    {
+        _lecturer.Email = _editEmail;
+        _lecturer.Phone = _editPhone;
+        _editingInfo = false;
+        // Sprint 3: gọi AuthService.UpdateProfile()
+    }
+
+    private void ChangePassword()
+    {
+        _pwError   = "";
+        _pwSuccess = false;
+
+        if (string.IsNullOrWhiteSpace(_currentPw))
+        { _pwError = "Vui lòng nhập mật khẩu hiện tại."; return; }
+        if (_newPw.Length < 8)
+        { _pwError = "Mật khẩu mới phải có ít nhất 8 ký tự."; return; }
+        if (_newPw != _confirmPw)
+        { _pwError = "Mật khẩu xác nhận không khớp."; return; }
+
+        // Sprint 3: gọi AuthService.ChangePassword()
+        _pwSuccess  = true;
+        _currentPw  = _newPw = _confirmPw = "";
+    }
+
+    private class LecturerProfile
+    {
+        public string LecturerId { get; set; } = "";
+        public string FullName   { get; set; } = "";
+        public string Department { get; set; } = "";
+        public string Email      { get; set; } = "";
+        public string Phone      { get; set; } = "";
+    }
+}

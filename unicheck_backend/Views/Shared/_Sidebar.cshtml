@@ -1,0 +1,56 @@
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-icon">
+            <i class="fa fa-check-circle"></i>
+        </div>
+        <div class="brand-text">
+            <span class="brand-name">UniCheck</span>
+            <span class="brand-tagline">Hệ thống Điểm Danh</span>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <!-- Group: Tổng quan -->
+        <div class="nav-group">
+            <span class="nav-group-label">Tổng quan</span>
+            <a class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Dashboard" ? "active" : "")" href="/dashboard">
+                <i class="fa fa-gauge-high nav-icon"></i>
+                <span>Dashboard</span>
+            </a>
+            <a class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Schedule" ? "active" : "")" href="/schedule">
+                <i class="fa fa-calendar-week nav-icon"></i>
+                <span>Lịch dạy</span>
+            </a>
+        </div>
+
+        <!-- Group: Quản lý -->
+        <div class="nav-group">
+            <span class="nav-group-label">Quản lý</span>
+            <a class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Classes" ? "active" : "")" href="/classes">
+                <i class="fa fa-chalkboard-teacher nav-icon"></i>
+                <span>Lớp học phần</span>
+            </a>
+            <a class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Leaves" ? "active" : "")" href="/leaves">
+                <i class="fa fa-file-alt nav-icon"></i>
+                <span>Đơn xin nghỉ</span>
+            </a>
+        </div>
+
+        <!-- Group: Báo cáo -->
+        <div class="nav-group">
+            <span class="nav-group-label">Báo cáo</span>
+            <a class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Reports" ? "active" : "")" href="/reports">
+                <i class="fa fa-chart-bar nav-icon"></i>
+                <span>Thống kê điểm danh</span>
+            </a>
+        </div>
+
+        <!-- Bottom: Profile -->
+        <div class="sidebar-bottom">
+            <a class="nav-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Profile" ? "active" : "")" href="/profile">
+                <i class="fa fa-user-circle nav-icon"></i>
+                <span>Hồ sơ</span>
+            </a>
+        </div>
+    </nav>
+</aside>

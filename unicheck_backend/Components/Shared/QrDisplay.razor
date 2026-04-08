@@ -1,0 +1,80 @@
+@* QrDisplay.razor - QR code + countdown tự đổi mỗi 20 giây *@
+@implements IDisposable
+
+<div class="qr-display @(IsActive ? "qr-active" : "qr-inactive")">
+    <div class="qr-title">
+        <i class="fa fa-qrcode me-2"></i>
+        <span>QR Code Điểm Danh</span>
+    </div>
+
+    @if (IsActive && !string.IsNullOrEmpty(QrImageBase64))
+    {
+        <div class="qr-wrapper">
+            <div class="qr-image-container">
+                <img src="@QrImageBase64" alt="QR Code Điểm Danh"
+                     class="qr-image" width="300" height="300" />
+            </div>
+
+            <!-- Countdown Bar -->
+            <div class="qr-countdown">
+                <div class="countdown-bar">
+                    <div class="countdown-fill @CountdownClass"
+                         style="width: @CountdownPercent%"></div>
+                </div>
+                <div class="countdown-text">
+                    <span>Đổi QR sau</span>
+                    <span class="countdown-seconds">@_secondsLeft giây</span>
+                </div>
+            </div>
+
+            <div class="qr-hint">
+                <i class="fa fa-mobile-screen-button me-2"></i>
+                Sinh viên mở app UniCheck → Quét QR
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="qr-placeholder">
+            <i class="fa fa-qrcode fa-6x text-muted"></i>
+            <p class="text-muted mt-3">QR sẽ hiển thị khi bắt đầu phiên</p>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Base64 data URI của QR image (server-rendered bởi QrCodeService).</summary>
+    [Parameter] public string? QrImageBase64 { get; set; }
+
+    [Parameter] public DateTime Expiry  { get; set; }
+    [Parameter] public bool IsActive    { get; set; }
+
+    private int     _secondsLeft      = 20;
+    private Timer?  _countdownTimer;
+
+    private string CountdownClass => _secondsLeft <= 5 ? "countdown-urgent" :
+                                     _secondsLeft <= 10 ? "countdown-warning" : "";
+    private double CountdownPercent => (_secondsLeft / 20.0) * 100;
+
+    protected override void OnParametersSet()
+    {
+        if (IsActive && !string.IsNullOrEmpty(QrImageBase64))
+        {
+            StartCountdown();
+        }
+    }
+
+    private void StartCountdown()
+    {
+        _countdownTimer?.Dispose();
+        _secondsLeft = Math.Max(0, (int)(Expiry - DateTime.UtcNow).TotalSeconds);
+
+        _countdownTimer = new Timer(async _ =>
+        {
+            _secondsLeft = Math.Max(0, (int)(Expiry - DateTime.UtcNow).TotalSeconds);
+            await InvokeAsync(StateHasChanged);
+        }, null, 0, 1000);
+    }
+
+    public void Dispose() => _countdownTimer?.Dispose();
+}

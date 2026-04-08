@@ -1,0 +1,195 @@
+@page "/reports"
+
+<PageTitle>Báo Cáo Điểm Danh — UniCheck</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title-text">
+            <i class="fa fa-chart-bar me-2"></i>Báo Cáo Điểm Danh
+        </h2>
+        <p class="page-subtitle">Thống kê tổng hợp theo lớp học phần</p>
+    </div>
+    <div class="page-actions">
+        @* Nút Xuất Excel tạm thời ẩn theo yêu cầu người dùng *@
+    </div>
+</div>
+
+<!-- Class Selector Tabs -->
+<div class="report-class-tabs mb-4">
+    @foreach (var cls in _classes)
+    {
+        <button class="report-tab @(_selectedClassId == cls.ClassId ? "active" : "")"
+                @onclick="() => SelectClass(cls.ClassId)">
+            <span class="tab-course-name">@cls.CourseName</span>
+            <div class="d-flex gap-2 justify-content-center opacity-75" style="font-size: 11px;">
+                <span>@cls.CourseCode</span>
+                <span>•</span>
+                <span>@cls.GroupCode</span>
+            </div>
+        </button>
+    }
+</div>
+
+@if (_selectedClass != null)
+{
+    <!-- Summary Row -->
+    <div class="stats-row mb-4">
+        <StatCard Icon="fa-users"       Label="Sĩ số"          Value="@_selectedClass.StudentCount.ToString()" Color="primary" />
+        <StatCard Icon="fa-percentage"  Label="Tỷ lệ có mặt"  Value="@($"{_avgPresent:F0}%")"                  Color="success" />
+        <StatCard Icon="fa-warning"     Label="SV nguy hiểm"  Value="@_dangerCount.ToString()"                  Color="danger" />
+        <StatCard Icon="fa-calendar"    Label="Tổng buổi"      Value="@_selectedClass.TotalSessions.ToString()" Color="info" />
+    </div>
+
+    <!-- Attendance Rate Visual Bar -->
+    <div class="card-panel mb-4">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="fa fa-chart-bar me-2"></i>Phân bố Điểm Danh</h5>
+        </div>
+        <div class="panel-body">
+            <div class="dist-bars">
+                <div class="dist-bar-item">
+                    <span class="dist-label">Có mặt</span>
+                    <div class="dist-track">
+                        <div class="dist-fill present" style="width:@(_avgPresent)%"></div>
+                    </div>
+                    <span class="dist-pct">@($"{_avgPresent:F0}%")</span>
+                </div>
+                <div class="dist-bar-item">
+                    <span class="dist-label">Đi muộn</span>
+                    <div class="dist-track">
+                        <div class="dist-fill late" style="width:@(_avgLate)%"></div>
+                    </div>
+                    <span class="dist-pct">@($"{_avgLate:F0}%")</span>
+                </div>
+                <div class="dist-bar-item">
+                    <span class="dist-label">Vắng</span>
+                    <div class="dist-track">
+                        <div class="dist-fill absent" style="width:@(_avgAbsent)%"></div>
+                    </div>
+                    <span class="dist-pct">@($"{_avgAbsent:F0}%")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Report Table -->
+    <div class="card-panel">
+        <div class="panel-header">
+            <h5 class="panel-title"><i class="fa fa-table me-2"></i>Chi Tiết Theo Sinh Viên</h5>
+            <input type="text" class="form-control form-control-sm"
+                   placeholder="Tìm sinh viên..."
+                   @bind="_search" @bind:event="oninput"
+                   style="width:200px" />
+        </div>
+        <div class="table-responsive">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>MSSV</th>
+                        <th>Họ và Tên</th>
+                        <th class="text-center">Có mặt</th>
+                        <th class="text-center">Đi muộn</th>
+                        <th class="text-center">Vắng</th>
+                        <th class="text-center">Có phép</th>
+                        <th class="text-center">Tỷ lệ</th>
+                        <th class="text-center">Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var sv in _filteredStudents)
+                    {
+                        double rate = _selectedClass.DoneSessions > 0
+                            ? (double)(sv.Present + sv.Late) / _selectedClass.DoneSessions * 100
+                            : 0;
+                        bool isDanger = rate < 70;
+                        <tr class="@(isDanger ? "row-danger" : "")">
+                            <td class="font-mono">@sv.StudentId</td>
+                            <td>@sv.FullName</td>
+                            <td class="text-center"><span class="count-badge present">@sv.Present</span></td>
+                            <td class="text-center"><span class="count-badge late">@sv.Late</span></td>
+                            <td class="text-center"><span class="count-badge absent">@sv.Absent</span></td>
+                            <td class="text-center"><span class="count-badge excused">@sv.Excused</span></td>
+                            <td class="text-center">
+                                <div class="mini-progress-wrap">
+                                    <div class="mini-progress-bar @(isDanger ? "danger" : "ok")"
+                                         style="width:@((int)rate)%"></div>
+                                    <span class="mini-pct">@($"{rate:F0}%")</span>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                @if (isDanger)
+                                {
+                                    <span class="status-chip absent">
+                                        <i class="fa fa-exclamation-triangle me-1"></i>Nguy hiểm
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="status-chip present">Đạt</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@inject AuthenticationStateProvider AuthStateProvider
+@inject unicheck_backend.Services.ScheduleService ScheduleService
+@inject unicheck_backend.Services.ClassService ClassService
+
+@code {
+    private int _selectedClassId = 0;
+    private string _search = "";
+
+    private unicheck_backend.Services.ClassViewDto? _selectedClass => _classes.FirstOrDefault(c => c.ClassId == _selectedClassId);
+    private List<unicheck_backend.Services.StudentReportDto> _filteredStudents => _students
+        .Where(s => string.IsNullOrEmpty(_search)
+                     || s.FullName.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                     || s.StudentId.Contains(_search, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    private double _avgPresent => _filteredStudents.Any() && _selectedClass != null && _selectedClass.DoneSessions > 0
+        ? _filteredStudents.Average(s => (double)s.Present / _selectedClass.DoneSessions * 100) : 0;
+    private double _avgLate => _filteredStudents.Any() && _selectedClass != null && _selectedClass.DoneSessions > 0
+        ? _filteredStudents.Average(s => (double)s.Late / _selectedClass.DoneSessions * 100) : 0;
+    private double _avgAbsent => _filteredStudents.Any() && _selectedClass != null && _selectedClass.DoneSessions > 0
+        ? _filteredStudents.Average(s => (double)s.Absent / _selectedClass.DoneSessions * 100) : 0;
+    private int _dangerCount => _filteredStudents.Count(s =>
+        _selectedClass != null && _selectedClass.DoneSessions > 0 &&
+        (double)(s.Present + s.Late) / _selectedClass.DoneSessions * 100 < 70);
+
+    private List<unicheck_backend.Services.ClassViewDto> _classes = new();
+    private List<unicheck_backend.Services.StudentReportDto> _students = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var lecturerIdClaim = authState.User.FindFirst("LecturerId");
+        if (lecturerIdClaim != null && int.TryParse(lecturerIdClaim.Value, out int id))
+        {
+            _classes = await ScheduleService.GetClassesByLecturerAsync(id);
+            if (_classes.Any())
+            {
+                await SelectClass(_classes.First().ClassId);
+            }
+        }
+    }
+
+    private async Task SelectClass(int id) 
+    { 
+        _selectedClassId = id; 
+        _search = ""; 
+        _students = await ClassService.GetAttendanceReportAsync(id);
+    }
+
+    private void ExportExcel() { /* Sprint 8 */ }
+}
+
+@code {
+    // Note: I'm reusing the ClassViewDto from ScheduleService which has the necessary fields:
+    // ClassId (implicitly known), CourseCode, CourseName, GroupCode, StudentCount, TotalSessions
+    // But ClassViewDto doesn't have ClassId. Let me check ScheduleService.cs again.
+}

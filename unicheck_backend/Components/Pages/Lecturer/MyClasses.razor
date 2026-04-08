@@ -1,0 +1,77 @@
+@page "/classes"
+
+<PageTitle>Lớp Học Phần — UniCheck</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title-text">
+            <i class="fa fa-chalkboard-teacher me-2"></i>Lớp Học Phần
+        </h2>
+        <p class="page-subtitle">Danh sách lớp học phần được phân công</p>
+    </div>
+</div>
+
+<div class="stats-row">
+    <StatCard Icon="fa-book"   Label="Tổng lớp"     Value="@_classes.Count.ToString()"            Color="primary" />
+    <StatCard Icon="fa-users"  Label="Tổng sinh viên" Value="@_classes.Sum(c => c.StudentCount).ToString()" Color="success" />
+</div>
+
+<div class="card-panel">
+    <div class="panel-header">
+        <h5 class="panel-title"><i class="fa fa-list me-2"></i>Danh Sách Lớp</h5>
+        <input type="text" class="form-control form-control-sm"
+               placeholder="Tìm lớp học..."
+               @bind="_search" @bind:event="oninput"
+               style="width:220px" />
+    </div>
+    <div class="panel-body">
+        <div class="class-grid">
+            @foreach (var c in _filtered)
+            {
+                <a href="/classes/@c.ClassId" class="class-card text-decoration-none" style="color: inherit; display: block;">
+                    <div class="class-card-header">
+                        <span class="course-code-badge">@c.CourseCode</span>
+                        <span class="semester-badge">HK-@c.Semester / @c.AcademicYear</span>
+                    </div>
+                    <h6 class="class-course-name">@c.CourseName</h6>
+                    <div class="class-meta">
+                        <span><i class="fa fa-tag me-1"></i>@c.GroupCode</span>
+                        <span><i class="fa fa-users me-1"></i>@c.StudentCount SV</span>
+                        <span><i class="fa fa-calendar me-1"></i>@c.TotalSessions buổi</span>
+                    </div>
+                    <div class="class-card-footer">
+                        <div class="progress-attendance">
+                            <div class="progress-bar-fill"
+                                 style="width: @(c.AttendancePct)%"></div>
+                        </div>
+                        <span class="pct-label">@c.AttendancePct% đã điểm danh</span>
+                    </div>
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+@inject AuthenticationStateProvider AuthStateProvider
+@inject unicheck_backend.Services.ScheduleService ScheduleService
+
+@code {
+    private string _search = "";
+    private List<unicheck_backend.Services.ClassViewDto> _filtered => _classes
+        .Where(c => string.IsNullOrEmpty(_search)
+                 || c.CourseName.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                 || c.CourseCode.Contains(_search, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    private List<unicheck_backend.Services.ClassViewDto> _classes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var lecturerIdClaim = authState.User.FindFirst("LecturerId");
+        if (lecturerIdClaim != null && int.TryParse(lecturerIdClaim.Value, out int id))
+        {
+            _classes = await ScheduleService.GetClassesByLecturerAsync(id);
+        }
+    }
+}

@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-multipart
+numpy==1.26.4
+face_recognition
+cmake
+dlib
+opencv-python
+Pillow

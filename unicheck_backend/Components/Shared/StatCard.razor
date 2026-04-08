@@ -1,0 +1,17 @@
+@* StatCard.razor - Dùng trong Dashboard và ClassDetail *@
+<div class="stat-card stat-@Color">
+    <div class="stat-icon">
+        <i class="fa @Icon"></i>
+    </div>
+    <div class="stat-body">
+        <span class="stat-value">@Value</span>
+        <span class="stat-label">@Label</span>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Icon  { get; set; } = "fa-circle";
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "0";
+    [Parameter] public string Color { get; set; } = "primary"; // primary|success|warning|danger|info
+}

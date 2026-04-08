@@ -1,0 +1,47 @@
+<nav class="sidebar-nav">
+    <!-- Brand -->
+
+    <!-- Group: Tổng quan -->
+    <div class="nav-group">
+        <span class="nav-group-label">Tổng quan</span>
+        <NavLink class="nav-item" href="/dashboard" Match="NavLinkMatch.All">
+            <i class="fa fa-gauge-high nav-icon"></i>
+            <span>Dashboard</span>
+        </NavLink>
+        <NavLink class="nav-item" href="/schedule" Match="NavLinkMatch.Prefix">
+            <i class="fa fa-calendar-week nav-icon"></i>
+            <span>Lịch dạy</span>
+        </NavLink>
+    </div>
+
+    <!-- Group: Quản lý -->
+    <div class="nav-group">
+        <span class="nav-group-label">Quản lý</span>
+        <NavLink class="nav-item" href="/classes" Match="NavLinkMatch.Prefix">
+            <i class="fa fa-chalkboard-teacher nav-icon"></i>
+            <span>Lớp học phần</span>
+        </NavLink>
+        <NavLink class="nav-item" href="/leaves" Match="NavLinkMatch.Prefix">
+            <i class="fa fa-file-alt nav-icon"></i>
+            <span>Đơn xin nghỉ</span>
+            <span class="nav-badge">2</span>
+        </NavLink>
+    </div>
+
+    <!-- Group: Báo cáo -->
+    <div class="nav-group">
+        <span class="nav-group-label">Báo cáo</span>
+        <NavLink class="nav-item" href="/reports" Match="NavLinkMatch.Prefix">
+            <i class="fa fa-chart-bar nav-icon"></i>
+            <span>Thống kê điểm danh</span>
+        </NavLink>
+    </div>
+
+    <!-- Bottom: Profile -->
+    <div class="sidebar-bottom">
+        <NavLink class="nav-item" href="/profile" Match="NavLinkMatch.Prefix">
+            <i class="fa fa-user-circle nav-icon"></i>
+            <span>Hồ sơ</span>
+        </NavLink>
+    </div>
+</nav>

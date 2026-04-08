@@ -1,0 +1,148 @@
+@page "/schedule"
+
+<PageTitle>Lịch Giảng Dạy — UniCheck</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title-text">
+            <i class="fa fa-calendar-alt me-2"></i>Lịch Giảng Dạy
+        </h2>
+        <p class="page-subtitle">Tuần @_weekLabel</p>
+    </div>
+    <div class="page-actions">
+        <div class="week-nav">
+            <button class="btn btn-outline-secondary btn-sm" @onclick="PrevWeek">
+                <i class="fa fa-chevron-left"></i>
+            </button>
+            <button class="btn btn-outline-primary btn-sm mx-2" @onclick="GoToday">Hôm nay</button>
+            <button class="btn btn-outline-secondary btn-sm" @onclick="NextWeek">
+                <i class="fa fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Calendar Grid -->
+<div class="calendar-container">
+    <!-- Time column -->
+    <div class="calendar-grid">
+        <!-- Header: weekdays -->
+        <div class="cal-time-col"></div>
+        @foreach (var day in _weekDays)
+        {
+            <div class="cal-day-header @(day.Date == DateTime.Today ? "today" : "")">
+                <span class="day-name">@day.DayOfWeekVi</span>
+                <span class="day-num @(day.Date == DateTime.Today ? "today-num" : "")">@day.Date.Day</span>
+            </div>
+        }
+
+        <!-- Time slots -->
+        @foreach (var slot in _timeSlots)
+        {
+            <div class="cal-time-slot">@slot</div>
+            @foreach (var day in _weekDays)
+            {
+                var sessions = GetSessionsForDaySlot(day.Date, slot);
+                <div class="cal-cell @(day.Date == DateTime.Today ? "today-col" : "")">
+                    @foreach (var s in sessions)
+                    {
+                        <div class="cal-session @s.ColorClass" @onclick="() => OpenSession(s)">
+                            <span class="cal-session-code">@s.CourseCode</span>
+                            <span class="cal-session-room">@s.RoomName</span>
+                            <span class="cal-session-group">@s.GroupCode</span>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<!-- Legend -->
+<div class="cal-legend">
+    @foreach (var course in _sessions.Select(s => new { s.CourseName, s.ColorClass }).DistinctBy(x => x.CourseName))
+    {
+        <div class="legend-item"><span class="legend-dot @course.ColorClass"></span>@course.CourseName</div>
+    }
+</div>
+
+@inject AuthenticationStateProvider AuthStateProvider
+@inject unicheck_backend.Services.ScheduleService ScheduleService
+
+@code {
+    private DateTime _currentWeekStart;
+    private string _weekLabel = "";
+    private int _lecturerId = 0;
+
+    private List<DayItem> _weekDays = new();
+    private List<string> _timeSlots = new() { "07:00", "09:00", "11:00", "13:00", "15:00", "17:00" };
+
+    private List<unicheck_backend.Services.ScheduleViewDto> _sessions = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var lecturerIdClaim = authState.User.FindFirst("LecturerId");
+        if (lecturerIdClaim != null && int.TryParse(lecturerIdClaim.Value, out int id))
+        {
+            _lecturerId = id;
+        }
+
+        var today = DateTime.Today;
+        int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
+        _currentWeekStart = today.AddDays(-diff);
+        await BuildWeekAsync();
+    }
+
+    private async Task BuildWeekAsync()
+    {
+        _weekDays = Enumerable.Range(0, 5).Select(i =>
+        {
+            var d = _currentWeekStart.AddDays(i);
+            return new DayItem
+            {
+                Date = d,
+                DayOfWeekVi = d.DayOfWeek switch
+                {
+                    DayOfWeek.Monday    => "Thứ 2",
+                    DayOfWeek.Tuesday   => "Thứ 3",
+                    DayOfWeek.Wednesday => "Thứ 4",
+                    DayOfWeek.Thursday  => "Thứ 5",
+                    DayOfWeek.Friday    => "Thứ 6",
+                    _ => ""
+                }
+            };
+        }).ToList();
+
+        _weekLabel = $"{_currentWeekStart:dd/MM} — {_currentWeekStart.AddDays(4):dd/MM/yyyy}";
+
+        if (_lecturerId > 0)
+        {
+            _sessions = await ScheduleService.GetWeekSchedulesAsync(_lecturerId, _currentWeekStart, _currentWeekStart.AddDays(6));
+        }
+    }
+
+    private List<unicheck_backend.Services.ScheduleViewDto> GetSessionsForDaySlot(DateTime date, string slot)
+        => _sessions.Where(s => s.DayOfWeek == date.DayOfWeek && s.TimeSlot == slot).ToList();
+
+    private async Task PrevWeek() { _currentWeekStart = _currentWeekStart.AddDays(-7); await BuildWeekAsync(); }
+    private async Task NextWeek() { _currentWeekStart = _currentWeekStart.AddDays(7); await BuildWeekAsync(); }
+    private async Task GoToday()
+    {
+        var today = DateTime.Today;
+        int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
+        _currentWeekStart = today.AddDays(-diff);
+        await BuildWeekAsync();
+    }
+
+    private void OpenSession(unicheck_backend.Services.ScheduleViewDto s)
+    {
+        // Navigate to live session or detail
+    }
+
+    private class DayItem
+    {
+        public DateTime Date { get; set; }
+        public string DayOfWeekVi { get; set; } = "";
+    }
+}

@@ -1,0 +1,57 @@
+@inject NavigationManager Nav
+
+@{
+    // Lấy page title từ URL
+    var seg = new Uri(Nav.Uri).AbsolutePath.Trim('/').Split('/');
+    string pageTitle = seg[0] switch
+    {
+        "dashboard" => "Dashboard",
+        "schedule"  => "Lịch Giảng Dạy",
+        "classes"   => "Lớp Học Phần",
+        "session"   => seg.Length > 2 && seg[2] == "detail" ? "Chi Tiết Điểm Danh" : "Điểm Danh Trực Tiếp",
+        "leaves"    => "Đơn Xin Nghỉ",
+        "reports"   => "Báo Cáo",
+        "profile"   => "Hồ Sơ",
+        _           => "UniCheck"
+    };
+}
+
+<header class="app-header">
+    <!-- Left: Toggle + Page Title -->
+    <div class="header-left">
+        <button class="sidebar-toggle" onclick="toggleSidebar()" title="Thu/mở sidebar">
+            <i class="fa fa-bars"></i>
+        </button>
+    </div>
+
+    <!-- Right: Notifications + User -->
+    <div class="header-right">
+        <!-- Notification Bell -->
+        <a href="/leaves" class="header-icon-btn" title="Đơn xin nghỉ chờ duyệt">
+            <i class="fa fa-bell"></i>
+            <span class="notif-badge">2</span>
+        </a>
+
+        <!-- User Menu -->
+        <div class="user-menu" onclick="toggleUserMenu(this)">
+            <div class="user-avatar">
+                <i class="fa fa-user-tie"></i>
+            </div>
+            <div class="user-info">
+                <span class="user-name">TS. Nguyễn V. Minh</span>
+                <span class="user-dept">CNTT</span>
+            </div>
+            <i class="fa fa-chevron-down user-chevron"></i>
+
+            <div class="user-dropdown">
+                <a href="/profile" class="dropdown-item">
+                    <i class="fa fa-user-circle me-2"></i>Hồ sơ cá nhân
+                </a>
+                <hr class="dropdown-divider" />
+                <a href="/Auth/Logout" class="dropdown-item text-danger">
+                    <i class="fa fa-sign-out-alt me-2"></i>Đăng xuất
+                </a>
+            </div>
+        </div>
+    </div>
+</header>

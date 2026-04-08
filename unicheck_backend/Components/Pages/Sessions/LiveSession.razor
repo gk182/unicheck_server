@@ -1,0 +1,324 @@
+@page "/session/{ScheduleId:int}"
+@inject AttendanceStateService AttState
+@inject AttendanceService AttService
+@inject QrCodeService QrService
+@inject ScheduleService SchService
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthProvider
+@inject AttendanceNotifier Notifier
+@inject ILogger<LiveSession> Logger
+@implements IDisposable
+
+<PageTitle>Điểm Danh — UniCheck</PageTitle>
+
+<div class="live-session-page">
+
+    <!-- Session Header -->
+    <div class="session-header">
+        <div class="session-info">
+            <h2 class="session-course">
+                <span class="live-dot pulse-badge"></span>
+                @_courseName
+            </h2>
+            <div class="session-meta">
+                <span><i class="fa fa-door-open me-1"></i>@_roomName</span>
+                <span><i class="fa fa-users me-1"></i>@_groupCode</span>
+                <span><i class="fa fa-clock me-1"></i>@_startTime — @_endTime</span>
+            </div>
+        </div>
+        <div class="session-controls">
+            @if (!_sessionStarted)
+            {
+                <button class="btn btn-success btn-lg btn-start-session"
+                        @onclick="StartSession" disabled="@_isLoading">
+                    @if (_isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                        <span>Đang khởi tạo...</span>
+                    }
+                    else
+                    {
+                        <i class="fa fa-play me-2"></i>
+                        <span>Bắt đầu phiên</span>
+                    }
+                </button>
+            }
+            else
+            {
+                <div class="session-timer">
+                    <i class="fa fa-stopwatch me-2"></i>
+                    <span class="timer-value">@_elapsedTime</span>
+                </div>
+                <button class="btn btn-danger btn-lg" @onclick="EndSession">
+                    <i class="fa fa-stop me-2"></i>Kết thúc
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger mt-3">
+            <i class="fa fa-exclamation-triangle me-2"></i>@_error
+        </div>
+    }
+
+    @if (_sessionStarted)
+    {
+        <!-- Two Column Layout -->
+        <div class="session-body">
+
+            <!-- LEFT: QR Code -->
+            <div class="session-left">
+                <QrDisplay QrImageBase64="@_qrImageBase64"
+                           Expiry="@AttState.QrTokenExpiry"
+                           IsActive="@AttState.IsSessionActive" />
+            </div>
+
+            <!-- RIGHT: Student List -->
+            <div class="session-right">
+                <!-- Stats -->
+                <div class="session-stats">
+                    <div class="stat-pill stat-total">
+                        <i class="fa fa-users"></i>
+                        <div>
+                            <span class="stat-num">@AttState.TotalStudents</span>
+                            <span class="stat-lbl">Sĩ số</span>
+                        </div>
+                    </div>
+                    <div class="stat-pill stat-present">
+                        <i class="fa fa-check-circle"></i>
+                        <div>
+                            <span class="stat-num">@AttState.PresentCount</span>
+                            <span class="stat-lbl">Có mặt</span>
+                        </div>
+                    </div>
+                    <div class="stat-pill stat-late">
+                        <i class="fa fa-clock"></i>
+                        <div>
+                            <span class="stat-num">@AttState.LateCount</span>
+                            <span class="stat-lbl">Trễ</span>
+                        </div>
+                    </div>
+                    <div class="stat-pill stat-absent">
+                        <i class="fa fa-times-circle"></i>
+                        <div>
+                            <span class="stat-num">@AttState.AbsentCount</span>
+                            <span class="stat-lbl">Vắng</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student Cards -->
+                <div class="students-feed">
+                    <h6 class="feed-title">
+                        <i class="fa fa-history me-2"></i>Sinh viên đã check-in
+                    </h6>
+                    @if (!AttState.CheckedInStudents.Any())
+                    {
+                        <div class="empty-feed">
+                            <i class="fa fa-hourglass-half fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">Đang chờ sinh viên quét QR...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="student-cards-list">
+                            @foreach (var s in AttState.CheckedInStudents.OrderByDescending(x => x.CheckInTime))
+                            {
+                                <StudentCard Student="s" />
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="session-waiting">
+            <i class="fa fa-play-circle fa-4x text-primary mb-3"></i>
+            <h4>Bấm "Bắt đầu phiên" để mở QR điểm danh</h4>
+            <p class="text-muted">Sinh viên sẽ quét QR từ ứng dụng UniCheck trên điện thoại</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int ScheduleId { get; set; }
+
+    // Schedule metadata — loaded from DB
+    private string _courseName  = "";
+    private string _roomName    = "";
+    private string _groupCode   = "";
+    private string _startTime   = "";
+    private string _endTime     = "";
+
+    // Session state
+    private bool   _sessionStarted = false;
+    private bool   _isLoading      = false;
+    private string _elapsedTime    = "00:00";
+    private string? _error;
+    private string? _qrImageBase64;
+
+    private int      _sessionId;
+    private DateTime _startTimeUtc;
+    private Timer?   _elapsedTimer;
+    private Timer?   _qrRefreshTimer;
+    private int      _lecturerId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AttState.OnChange += OnStateChanged;
+        Notifier.OnStudentCheckedIn += OnStudentCheckedIn; // Singleton → real-time push từ API
+
+        // Load lecturer ID from auth cookie claims
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var lecturerIdClaim = authState.User.FindFirst("LecturerId");
+        if (lecturerIdClaim != null && int.TryParse(lecturerIdClaim.Value, out int id))
+        {
+            _lecturerId = id;
+        }
+
+        // Load schedule metadata from DB
+        await LoadScheduleMetadata();
+    }
+
+    private async Task LoadScheduleMetadata()
+    {
+        try
+        {
+            var schedule = await SchService.GetScheduleWithDetails(ScheduleId);
+            if (schedule is not null)
+            {
+                _courseName = schedule.CourseClass.Course.CourseName;
+                _roomName   = schedule.Room.RoomName;
+                _groupCode  = $"{schedule.CourseClass.GroupCode} — HK{schedule.CourseClass.Semester}";
+                _startTime  = schedule.StartTime.ToString(@"hh\:mm");
+                _endTime    = schedule.EndTime.ToString(@"hh\:mm");
+                _lecturerId = schedule.CourseClass.LecturerId;
+            }
+            else
+            {
+                _error = "Không tìm thấy buổi học này.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Lỗi load schedule metadata");
+            _error = "Lỗi tải thông tin buổi học.";
+        }
+    }
+
+    private async Task StartSession()
+    {
+        _isLoading = true;
+        _error     = null;
+
+        try
+        {
+            // 1. Tạo session trong DB
+            var session = await AttService.StartSession(ScheduleId, _lecturerId);
+            _sessionId = session.SessionId;
+
+            // 2. Generate QR image
+            _qrImageBase64 = QrService.GenerateQrImage(session.QrToken);
+
+            // 3. Đếm tổng SV enrolled
+            int totalStudents = await AttService.CountEnrolledStudents(ScheduleId);
+
+            // 4. Init state service cho Blazor UI
+            AttState.InitSession(
+                sessionId:     _sessionId,
+                totalStudents: totalStudents,
+                qrToken:       session.QrToken,
+                expiry:        session.QrTokenExpiry
+            );
+
+            _sessionStarted = true;
+            _startTimeUtc   = DateTime.UtcNow;
+
+            // 5. Timer cập nhật elapsed time mỗi giây
+            _elapsedTimer = new Timer(_ =>
+            {
+                var elapsed = DateTime.UtcNow - _startTimeUtc;
+                _elapsedTime = $"{(int)elapsed.TotalMinutes:D2}:{elapsed.Seconds:D2}";
+                InvokeAsync(StateHasChanged);
+            }, null, 0, 1000);
+
+            // 6. Timer refresh QR mỗi 20 giây
+            _qrRefreshTimer = new Timer(async _ =>
+            {
+                try
+                {
+                    var (newToken, newExpiry) = await QrService.RefreshQrForSession(_sessionId);
+                    _qrImageBase64 = QrService.GenerateQrImage(newToken);
+
+                    await InvokeAsync(() =>
+                    {
+                        AttState.RefreshQrToken(newToken, newExpiry);
+                        StateHasChanged();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Lỗi refresh QR token");
+                }
+            }, null, 20_000, 20_000); // Bắt đầu sau 20s, lặp mỗi 20s
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Lỗi bắt đầu phiên điểm danh");
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task EndSession()
+    {
+        try
+        {
+            await AttService.EndSession(_sessionId);
+            AttState.EndSession();
+            _sessionStarted = false;
+            _elapsedTimer?.Dispose();
+            _qrRefreshTimer?.Dispose();
+            Nav.NavigateTo($"/session/{_sessionId}/detail");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Lỗi kết thúc phiên");
+            _error = ex.Message;
+        }
+    }
+
+    private void OnStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Nhận sự kiện check-in từ API (qua Singleton AttendanceNotifier).
+    /// Chỉ xử lý nếu sessionId khớp với phiên đang mở trên tab này.
+    /// </summary>
+    private void OnStudentCheckedIn(int sessionId, CheckedInStudentInfo student)
+    {
+        if (sessionId != _sessionId) return;
+        InvokeAsync(() =>
+        {
+            AttState.AddCheckedInStudent(student);
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        AttState.OnChange -= OnStateChanged;
+        Notifier.OnStudentCheckedIn -= OnStudentCheckedIn;
+        _elapsedTimer?.Dispose();
+        _qrRefreshTimer?.Dispose();
+    }
+}

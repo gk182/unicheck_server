@@ -1,0 +1,124 @@
+@page "/login"
+@layout unicheck_backend.Components.Pages.Auth.AuthLayout
+@inject NavigationManager Nav
+@using Microsoft.AspNetCore.Components.Forms
+
+<PageTitle>Đăng nhập — UniCheck</PageTitle>
+
+<div class="login-page">
+    <div class="login-card">
+        <!-- Brand -->
+        <div class="login-brand">
+            <div class="login-logo">
+                <i class="fa fa-check-circle"></i>
+            </div>
+            <div class="login-title">UniCheck</div>
+            <p class="login-subtitle">Hệ thống Điểm Danh Sinh Viên</p>
+        </div>
+
+        <!-- Visible UI Form (Not a real HTML form submission) -->
+        <div class="login-form">
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fa fa-user me-2"></i>Tên đăng nhập
+                </label>
+                <input @bind="_username"
+                       type="text"
+                       class="form-control login-input"
+                       placeholder="Nhập tên đăng nhập..."
+                       @onkeyup="@(async e => { if(e.Key == "Enter") await ProcessLogin(); })"
+                       required autofocus />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fa fa-lock me-2"></i>Mật khẩu
+                </label>
+                <div class="input-group">
+                    <input @bind="_password"
+                           type="password"
+                           id="passwordInput"
+                           class="form-control login-input"
+                           placeholder="Nhập mật khẩu..."
+                           @onkeyup="@(async e => { if(e.Key == "Enter") await ProcessLogin(); })"
+                           required />
+                    <button type="button" class="btn btn-outline-secondary"
+                            onclick="togglePassword()">
+                        <i class="fa fa-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button type="button" class="btn btn-login w-100" @onclick="ProcessLogin" disabled="@_isProcessing">
+                @if (_isProcessing)
+                {
+                    <i class="fa fa-spinner fa-spin me-2"></i><span>Đang kiểm tra...</span>
+                }
+                else
+                {
+                    <i class="fa fa-sign-in-alt me-2"></i><span>Đăng nhập</span>
+                }
+            </button>
+        </div>
+
+        <!-- Hidden REAL Form for Cookie SignIn -->
+        <form id="hidden-login-form" method="post" action="/Auth/Login" style="display:none">
+            <input name="Username" type="hidden" />
+            <input name="Password" type="hidden" />
+            <input name="ReturnUrl" type="hidden" value="/dashboard" />
+        </form>
+
+        <p class="login-footer">UniCheck &copy; 2026 — KLTN</p>
+    </div>
+</div>
+
+@code {
+    private string _username = "";
+    private string _password = "";
+    private bool _isProcessing = false;
+
+    [Inject] private unicheck_backend.Services.AuthService AuthService { get; set; } = default!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    private async Task ProcessLogin()
+    {
+        if (string.IsNullOrWhiteSpace(_username) || string.IsNullOrWhiteSpace(_password))
+        {
+            await JSRuntime.InvokeVoidAsync("showErrorDialog", "Vui lòng nhập đầy đủ thông tin.");
+            return;
+        }
+
+        _isProcessing = true;
+        try
+        {
+            // Bước 1: Kiểm tra thông tin thật qua AuthService (C#)
+            var user = await AuthService.AuthenticateAsync(_username, _password);
+
+            if (user == null)
+            {
+                await JSRuntime.InvokeVoidAsync("showErrorDialog", "Tên đăng nhập hoặc mật khẩu không đúng.");
+                return;
+            }
+
+            // Chỉ cho phép Lecturer vào Web
+            if (user.Role != unicheck_backend.Models.Enums.UserRole.LECTURER)
+            {
+                await JSRuntime.InvokeVoidAsync("showErrorDialog", "Chỉ giảng viên mới có quyền đăng nhập trang web.");
+                return;
+            }
+
+            // Bước 2: Nếu ổn, gọi JS để submit form ẩn (thực hiện HttpContext.SignInAsync)
+            await JSRuntime.InvokeVoidAsync("submitHiddenForm", _username, _password);
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("showErrorDialog", "Có lỗi hệ thống: " + ex.Message);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+}
+
+
