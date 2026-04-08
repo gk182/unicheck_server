@@ -1,0 +1,48 @@
+# Ignore environment file
+.env
+.env.local
+.env.*.local
+
+# Docker
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build
+bin/
+obj/
+dist/
+build/
+__pycache__/
+
+# Dependencies
+node_modules/
+venv/
+env/
+.Python
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Coverage
+.coverage
+htmlcov/
+
+# Python
+*.py[cod]
+*$py.class
+*.egg-info/
