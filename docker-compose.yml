@@ -1,0 +1,77 @@
+version: '3.9'
+
+services:
+  # ═══════════════════════════════════════════════════════════════
+  # SQL SERVER - Database Service
+  # ═══════════════════════════════════════════════════════════════
+  unicheck_sql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: unicheck_sql
+    environment:
+      SA_PASSWORD: "Admin@123"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql_data:/var/opt/mssql
+    networks:
+      - unicheck_net
+    restart: always
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "Admin@123" -C -Q "SELECT 1"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ═══════════════════════════════════════════════════════════════
+  # .NET CORE BACKEND API - Web API Service
+  # ═══════════════════════════════════════════════════════════════
+  unicheck_dotnet:
+    build:
+      context: ./unicheck_backend
+      dockerfile: Dockerfile
+    container_name: unicheck_dotnet
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=unicheck_sql,1433;Database=UniCheckDB;User Id=sa;Password=Admin@123;Encrypt=False;TrustServerCertificate=True;
+      - ASPNETCORE_URLS=http://+:8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      unicheck_sql:
+        condition: service_healthy
+    networks:
+      - unicheck_net
+    restart: always
+    volumes:
+      - ./unicheck_backend:/app
+
+  # ═══════════════════════════════════════════════════════════════
+  # PYTHON AI SERVICE - Face Recognition Service
+  # ═══════════════════════════════════════════════════════════════
+  unicheck_python:
+    build:
+      context: ./unicheck_ai
+      dockerfile: Dockerfile
+    container_name: unicheck_python
+    environment:
+      - PYTHONUNBUFFERED=1
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - unicheck_sql
+    networks:
+      - unicheck_net
+    restart: always
+    volumes:
+      - ./unicheck_ai:/app
+
+volumes:
+  sql_data:
+
+networks:
+  unicheck_net:
+    driver: bridge
+
