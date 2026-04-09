@@ -61,9 +61,8 @@ builder.Services.AddSingleton<AttendanceNotifier>();
 // HttpClient cho FaceService gọi Python AI service (port 8000)
 builder.Services.AddHttpClient("FaceAI", client =>
 {
-    // var aiUrl = builder.Configuration["FaceAI:BaseUrl"] ?? "http://localhost:8000";
-    var aiUrl = "https://unicheck.loca.lt/";
-
+    var aiUrl = builder.Configuration["FaceAI:BaseUrl"] ?? "http://localhost:8000";
+    
     client.BaseAddress = new Uri(aiUrl);
     client.Timeout = TimeSpan.FromSeconds(60);
 });

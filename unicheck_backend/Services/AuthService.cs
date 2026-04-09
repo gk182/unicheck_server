@@ -29,6 +29,7 @@ public class AuthService
     public async Task<User?> AuthenticateAsync(string username, string password)
     {
         var user = await _db.Users
+            .AsNoTracking()  // ← FIX: Không tracked DbContext, tránh threading issue
             .Include(u => u.Student)
             .Include(u => u.Lecturer)
             .FirstOrDefaultAsync(u => u.Username == username && u.IsActive);
