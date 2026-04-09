@@ -25,7 +25,7 @@ jobs:
           port: 22
           source: "."
           target: ${{ env.DEPLOY_PATH }}
-          rm: true
+          rm: false
           overwrite: true
 
       - name: Execute Deploy Commands on Server
