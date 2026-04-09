@@ -114,6 +114,9 @@ async def verify_face_batch(
         "result": result,
     }
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "message": "AI is running"}
 
 if __name__ == "__main__":
     uvicorn.run(
