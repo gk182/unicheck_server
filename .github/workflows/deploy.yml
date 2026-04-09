@@ -26,7 +26,6 @@ jobs:
           source: "."
           target: ${{ env.DEPLOY_PATH }}
           rm: true
-          strip_file_name: false
           overwrite: true
 
       - name: Execute Deploy Commands on Server
