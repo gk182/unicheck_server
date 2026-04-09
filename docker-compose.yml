@@ -43,8 +43,8 @@ services:
     networks:
       - unicheck_net
     restart: always
-    volumes:
-      - ./unicheck_backend:/app
+    # volumes:
+    #  - ./unicheck_backend:/app
 
   # ═══════════════════════════════════════════════════════════════
   # PYTHON AI SERVICE - Face Recognition Service
@@ -65,8 +65,8 @@ services:
     networks:
       - unicheck_net
     restart: always
-    volumes:
-      - ./unicheck_ai:/app
+    # volumes:
+    #  - ./unicheck_ai:/app
 
 volumes:
   sql_data:
