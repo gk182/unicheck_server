@@ -35,6 +35,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
       - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING}
       - ASPNETCORE_URLS=${ASPNETCORE_URLS}
+      - RUN_DB_MIGRATION=true
     ports:
       - "8080:8080"
     depends_on:

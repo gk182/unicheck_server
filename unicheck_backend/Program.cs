@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.Data.SqlClient;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -175,6 +176,40 @@ builder.Services.AddSession(options =>
 // BUILD
 // ─────────────────────────────────────────────────────────────────────────────
 var app = builder.Build();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTO DB MIGRATION (Production-safe via env flag)
+// ─────────────────────────────────────────────────────────────────────────────
+var runDbMigration = builder.Configuration.GetValue<bool>("RUN_DB_MIGRATION");
+if (runDbMigration)
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("DbMigration");
+
+    const int maxAttempts = 12;
+    for (var attempt = 1; attempt <= maxAttempts; attempt++)
+    {
+        try
+        {
+            logger.LogInformation("Applying DB migrations... attempt {Attempt}/{MaxAttempts}", attempt, maxAttempts);
+            await db.Database.MigrateAsync();
+            logger.LogInformation("DB migrations applied successfully.");
+            break;
+        }
+        catch (Exception ex) when (ex is SqlException || ex is TimeoutException || ex.InnerException is SqlException)
+        {
+            if (attempt == maxAttempts)
+            {
+                logger.LogError(ex, "DB migration failed after {MaxAttempts} attempts.", maxAttempts);
+                throw;
+            }
+
+            logger.LogWarning(ex, "DB not ready for migration. Retrying in 5 seconds...");
+            await Task.Delay(TimeSpan.FromSeconds(5));
+        }
+    }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 8. MIDDLEWARE PIPELINE
