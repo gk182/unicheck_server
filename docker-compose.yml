@@ -36,6 +36,7 @@ services:
       - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING}
       - ASPNETCORE_URLS=${ASPNETCORE_URLS}
       - RUN_DB_MIGRATION=true
+      - RUN_DB_SEEDER=true
     ports:
       - "8080:8080"
     depends_on:

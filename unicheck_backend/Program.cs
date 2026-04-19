@@ -211,6 +211,15 @@ if (runDbMigration)
     }
 }
 
+var runDbSeeder = builder.Configuration.GetValue<bool>("RUN_DB_SEEDER");
+if (app.Environment.IsDevelopment() || runDbSeeder)
+{
+    var seedLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("DbSeeder");
+    seedLogger.LogInformation("Seeding data started. Environment: {Environment}, RUN_DB_SEEDER: {RunDbSeeder}", app.Environment.EnvironmentName, runDbSeeder);
+    await DbSeeder.SeedAsync(app.Services);
+    seedLogger.LogInformation("Seeding data finished.");
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 8. MIDDLEWARE PIPELINE
 // ─────────────────────────────────────────────────────────────────────────────
@@ -223,9 +232,6 @@ if (app.Environment.IsDevelopment())
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "UniCheck API v1");
         c.RoutePrefix = "swagger";
     });
-
-    // Seed dữ liệu demo khi chạy Development (idempotent — chỉ seed nếu DB rỗng)
-    await DbSeeder.SeedAsync(app.Services);
 }
 else
 {
