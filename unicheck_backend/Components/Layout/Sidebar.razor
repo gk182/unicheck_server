@@ -37,6 +37,18 @@
         </NavLink>
     </div>
 
+    <AuthorizeView Roles="ADMIN">
+        <Authorized>
+            <div class="nav-group">
+                <span class="nav-group-label">Admin</span>
+                <NavLink class="nav-item" href="/admin" Match="NavLinkMatch.Prefix">
+                    <i class="fa fa-user-shield nav-icon"></i>
+                    <span>Quản trị học vụ</span>
+                </NavLink>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
     <!-- Bottom: Profile -->
     <div class="sidebar-bottom">
         <NavLink class="nav-item" href="/profile" Match="NavLinkMatch.Prefix">

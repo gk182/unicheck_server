@@ -100,10 +100,11 @@
                 return;
             }
 
-            // Chỉ cho phép Lecturer vào Web
-            if (user.Role != unicheck_backend.Models.Enums.UserRole.LECTURER)
+            // Cho phép Lecturer và Admin vào Web
+            if (user.Role != unicheck_backend.Models.Enums.UserRole.LECTURER
+                && user.Role != unicheck_backend.Models.Enums.UserRole.ADMIN)
             {
-                await JSRuntime.InvokeVoidAsync("showErrorDialog", "Chỉ giảng viên mới có quyền đăng nhập trang web.");
+                await JSRuntime.InvokeVoidAsync("showErrorDialog", "Bạn không đủ quyền đăng nhập trang web.");
                 return;
             }
 

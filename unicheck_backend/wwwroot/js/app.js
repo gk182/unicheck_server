@@ -114,3 +114,61 @@ function submitHiddenForm(username, password) {
     }
 }
 
+window.adminApi = {
+    async get(path) {
+        return await this.request(path, "GET");
+    },
+
+    async post(path, payload) {
+        return await this.request(path, "POST", payload);
+    },
+
+    async put(path, payload) {
+        return await this.request(path, "PUT", payload);
+    },
+
+    async request(path, method, payload) {
+        try {
+            const options = {
+                method,
+                credentials: "include",
+                headers: { "Content-Type": "application/json" }
+            };
+
+            if (payload !== undefined) {
+                options.body = JSON.stringify(payload);
+            }
+
+            const response = await fetch(path, options);
+            const text = await response.text();
+
+            let data = null;
+            if (text) {
+                try {
+                    data = JSON.parse(text);
+                } catch {
+                    data = text;
+                }
+            }
+
+            const error = response.ok
+                ? ""
+                : (data && typeof data === "object" && data.message ? data.message : `HTTP ${response.status}`);
+
+            return JSON.stringify({
+                ok: response.ok,
+                status: response.status,
+                data,
+                error
+            });
+        } catch (err) {
+            return JSON.stringify({
+                ok: false,
+                status: 0,
+                data: null,
+                error: err?.message || "Network error"
+            });
+        }
+    }
+};
+
