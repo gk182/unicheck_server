@@ -56,11 +56,11 @@ public class AuthController : Controller
 
         _logger.LogInformation("User {Username} authenticated. Role: {Role}", username, user.Role);
 
-        // Chỉ cho phép Lecturer đăng nhập web
-        if (user.Role != UserRole.LECTURER)
+        // Cho phép Lecturer và Admin đăng nhập web
+        if (user.Role != UserRole.LECTURER && user.Role != UserRole.ADMIN)
         {
-            _logger.LogWarning("Non-lecturer login attempt on web: {Username} (Role: {Role})", username, user.Role);
-            return Redirect($"/login?error={WebUtility.UrlEncode("Chỉ giảng viên mới có thể đăng nhập trang web")}");
+            _logger.LogWarning("Non-lecturer/admin login attempt on web: {Username} (Role: {Role})", username, user.Role);
+            return Redirect($"/login?error={WebUtility.UrlEncode("Chỉ giảng viên hoặc admin mới có thể đăng nhập trang web")}");
         }
 
         var principal = _authService.GetClaimsPrincipalForCookie(user);
@@ -71,8 +71,13 @@ public class AuthController : Controller
             new AuthenticationProperties { IsPersistent = true }
         );
 
-        _logger.LogInformation("Login success: {Username} (LecturerId: {LecturerId})",
-            username, user.Lecturer?.LecturerId);
+        _logger.LogInformation("Login success: {Username} (Role: {Role})", username, user.Role);
+
+        if (user.Role == UserRole.ADMIN)
+        {
+            return LocalRedirect("/admin");
+        }
+
         return LocalRedirect("/dashboard");
     }
 

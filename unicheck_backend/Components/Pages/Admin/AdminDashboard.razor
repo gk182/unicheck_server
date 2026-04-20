@@ -1,0 +1,671 @@
+@page "/admin"
+@attribute [Authorize(Roles = "ADMIN")]
+@using System.Text.Json
+@using Microsoft.AspNetCore.Authorization
+@inject IJSRuntime JS
+
+<PageTitle>Quan tri hoc vu - UniCheck</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h2 class="page-title-text"><i class="fa fa-user-shield me-2"></i>Quan tri hoc vu</h2>
+        <p class="page-subtitle">Tao lop, gan giang vien, chinh lich va them sinh vien vao lop.</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <div class="alert @(_isError ? "alert-danger" : "alert-success")" role="alert">@_message</div>
+}
+
+<div class="stats-row">
+    <StatCard Icon="fa-chalkboard" Label="Lop hoc phan" Value="@_classes.Count.ToString()" Color="primary" />
+    <StatCard Icon="fa-user-tie" Label="Giang vien" Value="@_lecturers.Count.ToString()" Color="success" />
+    <StatCard Icon="fa-user-graduate" Label="Sinh vien" Value="@_studentCount.ToString()" Color="warning" />
+    <StatCard Icon="fa-door-open" Label="Phong hoc" Value="@_rooms.Count.ToString()" Color="info" />
+</div>
+
+<div class="row g-4">
+    <div class="col-12 col-xl-6">
+        <div class="card-panel h-100">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fa fa-plus-circle me-2"></i>Tao lop hoc phan</h5>
+            </div>
+            <div class="panel-body">
+                <div class="mb-3">
+                    <label class="form-label">Mon hoc</label>
+                    <select class="form-select" @bind="_createClass.CourseId">
+                        <option value="0">-- Chon mon hoc --</option>
+                        @foreach (var c in _courses)
+                        {
+                            <option value="@c.CourseId">@c.CourseCode - @c.CourseName</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Giang vien</label>
+                    <select class="form-select" @bind="_createClass.LecturerId">
+                        <option value="0">-- Chon giang vien --</option>
+                        @foreach (var l in _lecturers)
+                        {
+                            <option value="@l.LecturerId">@l.FullName (@l.Email)</option>
+                        }
+                    </select>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-4">
+                        <label class="form-label">Hoc ky</label>
+                        <select class="form-select" @bind="_createClass.Semester">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                        </select>
+                    </div>
+                    <div class="col-8">
+                        <label class="form-label">Nam hoc</label>
+                        <input class="form-control" @bind="_createClass.AcademicYear" placeholder="2025-2026" />
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Ma nhom</label>
+                    <input class="form-control" @bind="_createClass.GroupCode" placeholder="N01 / 22-0302" />
+                </div>
+                <button class="btn btn-primary" @onclick="CreateClassAsync">Tao lop</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+        <div class="card-panel h-100">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fa fa-user-pen me-2"></i>Gan giang vien cho lop</h5>
+            </div>
+            <div class="panel-body">
+                <div class="mb-3">
+                    <label class="form-label">Lop hoc phan</label>
+                    <select class="form-select" @bind="_assignLecturer.ClassId">
+                        <option value="0">-- Chon lop --</option>
+                        @foreach (var c in _classes)
+                        {
+                            <option value="@c.ClassId">#@c.ClassId - @c.CourseCode - @c.GroupCode (@c.AcademicYear)</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Giang vien moi</label>
+                    <select class="form-select" @bind="_assignLecturer.LecturerId">
+                        <option value="0">-- Chon giang vien --</option>
+                        @foreach (var l in _lecturers)
+                        {
+                            <option value="@l.LecturerId">@l.FullName</option>
+                        }
+                    </select>
+                </div>
+                <button class="btn btn-warning" @onclick="AssignLecturerAsync">Cap nhat giang vien</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+        <div class="card-panel h-100">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fa fa-calendar-pen me-2"></i>Chinh lich day</h5>
+            </div>
+            <div class="panel-body">
+                <div class="mb-3">
+                    <label class="form-label">Buoi hoc</label>
+                    <select class="form-select" @bind="_editSchedule.ScheduleId" @bind:after="OnScheduleChangedAsync">
+                        <option value="0">-- Chon buoi hoc --</option>
+                        @foreach (var s in _schedules)
+                        {
+                            <option value="@s.ScheduleId">#@s.ScheduleId - @s.CourseCode/@s.GroupCode - @s.Date.ToString("dd/MM/yyyy") (@s.StartTime - @s.EndTime)</option>
+                        }
+                    </select>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label">Ngay hoc</label>
+                        <input type="text" class="form-control" @bind="_editSchedule.DateText" placeholder="yyyy-MM-dd" />
+                    </div>
+                    <div class="col-3">
+                        <label class="form-label">Bat dau</label>
+                        <input type="text" class="form-control" @bind="_editSchedule.StartText" placeholder="HH:mm" />
+                    </div>
+                    <div class="col-3">
+                        <label class="form-label">Ket thuc</label>
+                        <input type="text" class="form-control" @bind="_editSchedule.EndText" placeholder="HH:mm" />
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Phong hoc</label>
+                    <select class="form-select" @bind="_editSchedule.RoomId">
+                        <option value="0">-- Chon phong --</option>
+                        @foreach (var room in _rooms)
+                        {
+                            <option value="@room.RoomId">@room.RoomName</option>
+                        }
+                    </select>
+                </div>
+                <button class="btn btn-info" @onclick="UpdateScheduleAsync">Cap nhat lich</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-6">
+        <div class="card-panel h-100">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fa fa-users-medical me-2"></i>Them sinh vien vao lop</h5>
+            </div>
+            <div class="panel-body">
+                <div class="mb-3">
+                    <label class="form-label">Lop hoc phan</label>
+                    <select class="form-select" @bind="_enroll.ClassId">
+                        <option value="0">-- Chon lop --</option>
+                        @foreach (var c in _classes)
+                        {
+                            <option value="@c.ClassId">#@c.ClassId - @c.CourseCode - @c.GroupCode</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Danh sach MSSV (dau phay/xuong dong)</label>
+                    <textarea class="form-control" rows="4" @bind="_enroll.StudentIdsRaw" placeholder="3120222001,3120222002"></textarea>
+                </div>
+                <button class="btn btn-success me-2" @onclick="EnrollStudentsAsync">Them vao lop</button>
+            </div>
+            <hr class="my-0" />
+            <div class="panel-body">
+                <h6 class="mb-3"><i class="fa fa-file-csv me-2"></i>Import CSV enrollment</h6>
+                <div class="mb-3">
+                    <label class="form-label">Noi dung CSV (cot dau la MSSV, co the co header)</label>
+                    <textarea class="form-control" rows="5" @bind="_enroll.CsvContent" placeholder="studentId&#10;3120222001&#10;3120222002"></textarea>
+                </div>
+                <button class="btn btn-outline-success" @onclick="ImportCsvAsync">Import CSV</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card-panel mt-4">
+    <div class="panel-header">
+        <h5 class="panel-title"><i class="fa fa-table me-2"></i>Danh sach lop hoc phan</h5>
+    </div>
+    <div class="panel-body table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>#ClassId</th>
+                    <th>Mon hoc</th>
+                    <th>Nhom</th>
+                    <th>Hoc ky</th>
+                    <th>Nam hoc</th>
+                    <th>Giang vien</th>
+                    <th>SV</th>
+                    <th>Buoi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in _classes)
+                {
+                    <tr>
+                        <td>@c.ClassId</td>
+                        <td>@c.CourseCode - @c.CourseName</td>
+                        <td>@c.GroupCode</td>
+                        <td>@c.Semester</td>
+                        <td>@c.AcademicYear</td>
+                        <td>@c.LecturerName</td>
+                        <td>@c.EnrollmentCount</td>
+                        <td>@c.ScheduleCount</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card-panel mt-4">
+    <div class="panel-header d-flex justify-content-between align-items-center">
+        <h5 class="panel-title mb-0"><i class="fa fa-calendar-week me-2"></i>Danh sach lich day</h5>
+        <select class="form-select form-select-sm" style="max-width: 280px" @bind="_scheduleFilterClassId" @bind:after="OnScheduleFilterChangedAsync">
+            <option value="0">Tat ca lop</option>
+            @foreach (var c in _classes)
+            {
+                <option value="@c.ClassId">#@c.ClassId - @c.CourseCode - @c.GroupCode</option>
+            }
+        </select>
+    </div>
+    <div class="panel-body table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>#ScheduleId</th>
+                    <th>Class</th>
+                    <th>Mon/Nhom</th>
+                    <th>Ngay</th>
+                    <th>Bat dau</th>
+                    <th>Ket thuc</th>
+                    <th>Phong</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in _schedules)
+                {
+                    <tr>
+                        <td>@s.ScheduleId</td>
+                        <td>@s.ClassId</td>
+                        <td>@s.CourseCode / @s.GroupCode</td>
+                        <td>@s.Date.ToString("dd/MM/yyyy")</td>
+                        <td>@s.StartTime</td>
+                        <td>@s.EndTime</td>
+                        <td>@s.RoomName</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    private string _message = string.Empty;
+    private bool _isError;
+
+    private int _studentCount;
+    private int _scheduleFilterClassId;
+
+    private List<CourseOption> _courses = new();
+    private List<LecturerOption> _lecturers = new();
+    private List<RoomOption> _rooms = new();
+    private List<ClassRow> _classes = new();
+    private List<ScheduleRow> _schedules = new();
+
+    private readonly CreateClassModel _createClass = new();
+    private readonly AssignLecturerModel _assignLecturer = new();
+    private readonly UpdateScheduleModel _editSchedule = new();
+    private readonly EnrollStudentsModel _enroll = new();
+
+    protected override Task OnInitializedAsync()
+    {
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await ReloadAsync();
+        StateHasChanged();
+    }
+
+    private async Task ReloadAsync()
+    {
+        var metadata = await ApiGetAsync<MetadataResponse>("/api/admin/metadata");
+        if (!metadata.Ok)
+        {
+            ShowError(metadata.Error);
+            return;
+        }
+
+        _courses = metadata.Data?.Courses ?? new();
+        _lecturers = metadata.Data?.Lecturers ?? new();
+        _rooms = metadata.Data?.Rooms ?? new();
+        _studentCount = metadata.Data?.StudentCount ?? 0;
+
+        var classes = await ApiGetAsync<List<ClassRow>>("/api/admin/classes");
+        if (!classes.Ok)
+        {
+            ShowError(classes.Error);
+            return;
+        }
+
+        _classes = classes.Data ?? new();
+
+        var schedulePath = _scheduleFilterClassId > 0 ? $"/api/admin/schedules?classId={_scheduleFilterClassId}" : "/api/admin/schedules";
+        var schedules = await ApiGetAsync<List<ScheduleRow>>(schedulePath);
+        if (!schedules.Ok)
+        {
+            ShowError(schedules.Error);
+            return;
+        }
+
+        _schedules = schedules.Data ?? new();
+    }
+
+    private async Task CreateClassAsync()
+    {
+        if (_createClass.CourseId <= 0 || _createClass.LecturerId <= 0 || string.IsNullOrWhiteSpace(_createClass.AcademicYear) || string.IsNullOrWhiteSpace(_createClass.GroupCode))
+        {
+            ShowError("Vui long nhap day du thong tin tao lop.");
+            return;
+        }
+
+        var payload = new
+        {
+            _createClass.CourseId,
+            _createClass.LecturerId,
+            _createClass.Semester,
+            AcademicYear = _createClass.AcademicYear.Trim(),
+            GroupCode = _createClass.GroupCode.Trim()
+        };
+
+        var result = await ApiPostAsync<JsonElement>("/api/admin/classes", payload);
+        if (!result.Ok)
+        {
+            ShowError(result.Error);
+            return;
+        }
+
+        ShowSuccess("Tao lop hoc phan thanh cong.");
+        await ReloadAsync();
+    }
+
+    private async Task AssignLecturerAsync()
+    {
+        if (_assignLecturer.ClassId <= 0 || _assignLecturer.LecturerId <= 0)
+        {
+            ShowError("Vui long chon lop va giang vien.");
+            return;
+        }
+
+        var payload = new { _assignLecturer.LecturerId };
+        var result = await ApiPutAsync<JsonElement>($"/api/admin/classes/{_assignLecturer.ClassId}/lecturer", payload);
+        if (!result.Ok)
+        {
+            ShowError(result.Error);
+            return;
+        }
+
+        ShowSuccess("Cap nhat giang vien thanh cong.");
+        await ReloadAsync();
+    }
+
+    private Task OnScheduleChangedAsync()
+    {
+        var selected = _schedules.FirstOrDefault(s => s.ScheduleId == _editSchedule.ScheduleId);
+        if (selected is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        _editSchedule.DateText = selected.Date.ToString("yyyy-MM-dd");
+        _editSchedule.StartText = selected.StartTime.ToString(@"hh\:mm");
+        _editSchedule.EndText = selected.EndTime.ToString(@"hh\:mm");
+        _editSchedule.RoomId = selected.RoomId;
+
+        return Task.CompletedTask;
+    }
+
+    private async Task UpdateScheduleAsync()
+    {
+        if (_editSchedule.ScheduleId <= 0 || _editSchedule.RoomId <= 0 || string.IsNullOrWhiteSpace(_editSchedule.DateText) || string.IsNullOrWhiteSpace(_editSchedule.StartText) || string.IsNullOrWhiteSpace(_editSchedule.EndText))
+        {
+            ShowError("Vui long nhap du thong tin lich hoc.");
+            return;
+        }
+
+        if (!DateTime.TryParse(_editSchedule.DateText, out var date)
+            || !TimeSpan.TryParse(_editSchedule.StartText, out var start)
+            || !TimeSpan.TryParse(_editSchedule.EndText, out var end))
+        {
+            ShowError("Dinh dang ngay/gio khong hop le.");
+            return;
+        }
+
+        var payload = new
+        {
+            Date = date,
+            StartTime = start,
+            EndTime = end,
+            RoomId = _editSchedule.RoomId
+        };
+
+        var result = await ApiPutAsync<JsonElement>($"/api/admin/schedules/{_editSchedule.ScheduleId}", payload);
+        if (!result.Ok)
+        {
+            ShowError(result.Error);
+            return;
+        }
+
+        ShowSuccess("Cap nhat lich hoc thanh cong.");
+        await ReloadAsync();
+    }
+
+    private async Task EnrollStudentsAsync()
+    {
+        if (_enroll.ClassId <= 0 || string.IsNullOrWhiteSpace(_enroll.StudentIdsRaw))
+        {
+            ShowError("Vui long chon lop va nhap danh sach MSSV.");
+            return;
+        }
+
+        var studentIds = _enroll.StudentIdsRaw
+            .Split(new[] { ',', '\n', '\r', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim())
+            .Distinct()
+            .ToList();
+
+        if (studentIds.Count == 0)
+        {
+            ShowError("Danh sach MSSV khong hop le.");
+            return;
+        }
+
+        var payload = new
+        {
+            _enroll.ClassId,
+            StudentIds = studentIds
+        };
+
+        var result = await ApiPostAsync<EnrollmentResult>("/api/admin/enrollments", payload);
+        if (!result.Ok)
+        {
+            ShowError(result.Error);
+            return;
+        }
+
+        ShowSuccess(BuildEnrollmentMessage(result.Data));
+        await ReloadAsync();
+    }
+
+    private async Task ImportCsvAsync()
+    {
+        if (_enroll.ClassId <= 0 || string.IsNullOrWhiteSpace(_enroll.CsvContent))
+        {
+            ShowError("Vui long chon lop va nhap noi dung CSV.");
+            return;
+        }
+
+        var payload = new
+        {
+            _enroll.ClassId,
+            CsvContent = _enroll.CsvContent
+        };
+
+        var result = await ApiPostAsync<EnrollmentResult>("/api/admin/enrollments/import-csv", payload);
+        if (!result.Ok)
+        {
+            ShowError(result.Error);
+            return;
+        }
+
+        ShowSuccess(BuildEnrollmentMessage(result.Data));
+        await ReloadAsync();
+    }
+
+    private async Task OnScheduleFilterChangedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private static string BuildEnrollmentMessage(EnrollmentResult? data)
+    {
+        if (data is null)
+        {
+            return "Thao tac thanh cong.";
+        }
+
+        var msg = $"Them thanh cong {data.SuccessCount} sinh vien";
+        if (data.SkippedCount > 0)
+        {
+            msg += $", bo qua {data.SkippedCount} da ton tai";
+        }
+        if (data.FailedCount > 0)
+        {
+            msg += $", khong tim thay {data.FailedCount}";
+        }
+
+        return msg + ".";
+    }
+
+    private void ShowSuccess(string message)
+    {
+        _message = message;
+        _isError = false;
+    }
+
+    private void ShowError(string message)
+    {
+        _message = message;
+        _isError = true;
+    }
+
+    private async Task<ApiEnvelope<T>> ApiGetAsync<T>(string path)
+    {
+        var raw = await JS.InvokeAsync<string>("adminApi.get", path);
+        return DeserializeEnvelope<T>(raw);
+    }
+
+    private async Task<ApiEnvelope<T>> ApiPostAsync<T>(string path, object payload)
+    {
+        var raw = await JS.InvokeAsync<string>("adminApi.post", path, payload);
+        return DeserializeEnvelope<T>(raw);
+    }
+
+    private async Task<ApiEnvelope<T>> ApiPutAsync<T>(string path, object payload)
+    {
+        var raw = await JS.InvokeAsync<string>("adminApi.put", path, payload);
+        return DeserializeEnvelope<T>(raw);
+    }
+
+    private static ApiEnvelope<T> DeserializeEnvelope<T>(string raw)
+    {
+        var result = JsonSerializer.Deserialize<ApiEnvelope<T>>(raw, JsonOptions);
+        if (result is null)
+        {
+            return new ApiEnvelope<T>
+            {
+                Ok = false,
+                Error = "Khong doc duoc du lieu tu API."
+            };
+        }
+
+        return result;
+    }
+
+    private class ApiEnvelope<T>
+    {
+        public bool Ok { get; set; }
+        public int Status { get; set; }
+        public T? Data { get; set; }
+        public string Error { get; set; } = string.Empty;
+    }
+
+    private class MetadataResponse
+    {
+        public List<CourseOption> Courses { get; set; } = new();
+        public List<LecturerOption> Lecturers { get; set; } = new();
+        public List<RoomOption> Rooms { get; set; } = new();
+        public int StudentCount { get; set; }
+    }
+
+    private class CourseOption
+    {
+        public int CourseId { get; set; }
+        public string CourseCode { get; set; } = string.Empty;
+        public string CourseName { get; set; } = string.Empty;
+    }
+
+    private class LecturerOption
+    {
+        public int LecturerId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+    }
+
+    private class RoomOption
+    {
+        public int RoomId { get; set; }
+        public string RoomName { get; set; } = string.Empty;
+    }
+
+    private class ClassRow
+    {
+        public int ClassId { get; set; }
+        public int CourseId { get; set; }
+        public string CourseCode { get; set; } = string.Empty;
+        public string CourseName { get; set; } = string.Empty;
+        public string GroupCode { get; set; } = string.Empty;
+        public int Semester { get; set; }
+        public string AcademicYear { get; set; } = string.Empty;
+        public int LecturerId { get; set; }
+        public string LecturerName { get; set; } = string.Empty;
+        public int EnrollmentCount { get; set; }
+        public int ScheduleCount { get; set; }
+    }
+
+    private class ScheduleRow
+    {
+        public int ScheduleId { get; set; }
+        public int ClassId { get; set; }
+        public int RoomId { get; set; }
+        public string RoomName { get; set; } = string.Empty;
+        public string CourseCode { get; set; } = string.Empty;
+        public string GroupCode { get; set; } = string.Empty;
+        public DateTime Date { get; set; }
+        public TimeSpan StartTime { get; set; }
+        public TimeSpan EndTime { get; set; }
+    }
+
+    private class EnrollmentResult
+    {
+        public int ClassId { get; set; }
+        public int TotalAttempted { get; set; }
+        public int SuccessCount { get; set; }
+        public int SkippedCount { get; set; }
+        public int FailedCount { get; set; }
+    }
+
+    private class CreateClassModel
+    {
+        public int CourseId { get; set; }
+        public int LecturerId { get; set; }
+        public int Semester { get; set; } = 1;
+        public string AcademicYear { get; set; } = "2025-2026";
+        public string GroupCode { get; set; } = "N01";
+    }
+
+    private class AssignLecturerModel
+    {
+        public int ClassId { get; set; }
+        public int LecturerId { get; set; }
+    }
+
+    private class UpdateScheduleModel
+    {
+        public int ScheduleId { get; set; }
+        public string DateText { get; set; } = string.Empty;
+        public string StartText { get; set; } = string.Empty;
+        public string EndText { get; set; } = string.Empty;
+        public int RoomId { get; set; }
+    }
+
+    private class EnrollStudentsModel
+    {
+        public int ClassId { get; set; }
+        public string StudentIdsRaw { get; set; } = string.Empty;
+        public string CsvContent { get; set; } = string.Empty;
+    }
+}

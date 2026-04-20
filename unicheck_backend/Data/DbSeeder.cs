@@ -16,8 +16,26 @@ public static class DbSeeder
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        // Nếu đã có data thì bỏ qua
-        if (db.Users.Any()) return;
+        // Nếu đã có data thì chỉ đảm bảo có tài khoản admin demo rồi thoát.
+        if (db.Users.Any())
+        {
+            var hasAdmin = db.Users.Any(u => u.Role == UserRole.ADMIN);
+            if (!hasAdmin)
+            {
+                db.Users.Add(new User
+                {
+                    Username = "admin001",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123"),
+                    Role = UserRole.ADMIN,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+                await db.SaveChangesAsync();
+                Console.WriteLine("[DbSeeder] Added missing demo admin account: admin001/password123.");
+            }
+
+            return;
+        }
 
         Console.WriteLine("[DbSeeder] Đang khởi tạo dữ liệu thực tế mô phỏng Khoa CNTT - UED...");
 
@@ -48,7 +66,14 @@ public static class DbSeeder
         await db.SaveChangesAsync();
 
         // ==========================================
-        // 3. TẠO DUY NHẤT 1 GIẢNG VIÊN
+        // 3. TẠO TÀI KHOẢN ADMIN DEMO
+        // ==========================================
+        var adminUser = new User { Username = "admin001", PasswordHash = defaultPasswordHash, Role = UserRole.ADMIN, IsActive = true, CreatedAt = DateTime.UtcNow };
+        db.Users.Add(adminUser);
+        await db.SaveChangesAsync();
+
+        // ==========================================
+        // 4. TẠO DUY NHẤT 1 GIẢNG VIÊN
         // ==========================================
         var gvUser = new User { Username = "gv001", PasswordHash = defaultPasswordHash, Role = UserRole.LECTURER, IsActive = true, CreatedAt = DateTime.UtcNow };
         db.Users.Add(gvUser);
@@ -59,7 +84,7 @@ public static class DbSeeder
         await db.SaveChangesAsync();
 
         // ==========================================
-        // 4. TẠO LỚP HỌC PHẦN (Tất cả do gv001 dạy)
+        // 5. TẠO LỚP HỌC PHẦN (Tất cả do gv001 dạy)
         // ==========================================
         var classMain = new CourseClass { CourseId = courseMain.CourseId, LecturerId = lecturer.LecturerId, Semester = 2, AcademicYear = "2025-2026", GroupCode = "22-0302" };
         var classAI = new CourseClass { CourseId = courseAI.CourseId, LecturerId = lecturer.LecturerId, Semester = 2, AcademicYear = "2025-2026", GroupCode = "22-0305" };
@@ -69,7 +94,7 @@ public static class DbSeeder
         await db.SaveChangesAsync();
 
         // ==========================================
-        // 5. TẠO 60 SINH VIÊN VÀ ĐĂNG KÝ MÔN (ENROLLMENTS)
+        // 6. TẠO 60 SINH VIÊN VÀ ĐĂNG KÝ MÔN (ENROLLMENTS)
         // ==========================================
         var students = new List<Student>();
         for (int i = 1; i <= 60; i++)
@@ -219,7 +244,7 @@ public static class DbSeeder
         // Đã xóa phần tạo AttendanceSession tự động.
         // Bạn hãy đăng nhập tài khoản giảng viên (gv001) để tự mở phiên.
 
-        Console.WriteLine("[DbSeeder] ✅ Hoàn tất! Hãy dùng tài khoản 'gv001' để test tính năng Mở điểm danh.");
+        Console.WriteLine("[DbSeeder] ✅ Hoàn tất! Demo account: admin001/password123 (ADMIN), gv001/password123 (LECTURER).");
     }
 
     private static string GenerateRandomVietnameseName(Random r)

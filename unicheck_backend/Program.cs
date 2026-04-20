@@ -113,6 +113,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 4. BLAZOR SERVER + MVC (Controllers cho REST API + Auth redirect)
