@@ -209,6 +209,7 @@ public class ExportService
             .Include(c => c.Schedules)
                 .ThenInclude(s => s.AttendanceSessions)
                     .ThenInclude(sess => sess.Attendances)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(c => c.ClassId == classId)
             ?? throw new InvalidOperationException("Không tìm thấy lớp học.");
 

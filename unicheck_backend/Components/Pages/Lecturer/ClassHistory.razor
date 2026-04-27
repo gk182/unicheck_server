@@ -1,6 +1,8 @@
 @page "/classes/{ClassId:int}"
 @inject NavigationManager Nav
 @inject unicheck_backend.Services.ClassService ClassService
+@inject unicheck_backend.Services.ExportService ExportService
+@inject IJSRuntime JS
 
 <PageTitle>Chi Tiết Lớp — UniCheck</PageTitle>
 
@@ -166,7 +168,25 @@ else
     private string AttLabel(string r) => r switch { "P" => "Có mặt", "L" => "Muộn", "A" => "Vắng", "E" => "Có phép", _ => "" };
     private string AttIcon(string r)  => r switch { "P" => "✓", "L" => "~", "A" => "✗", "E" => "E", _ => "-" };
 
-    private void ExportExcel() { /* Sprint 8 - ClosedXML implementation later */ }
+    private async Task ExportExcel() 
+    { 
+        if (_cls == null) return;
+        
+        try 
+        {
+            var fileBytes = await ExportService.ExportClassAsync(ClassId);
+            var base64 = Convert.ToBase64String(fileBytes);
+            var fileName = $"DiemDanh_{_cls.CourseCode}_{_cls.GroupCode}.xlsx";
+            var mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            
+            await JS.InvokeVoidAsync("downloadFromBase64", base64, fileName, mimeType);
+            await JS.InvokeVoidAsync("showToast", "Đã xuất file Excel thành công!", "success");
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("showToast", $"Lỗi xuất Excel: {ex.Message}", "danger");
+        }
+    }
 
     private unicheck_backend.Services.ClassDetailsDto? _cls;
     private List<unicheck_backend.Services.SessionDetailDto> _sessions = new();

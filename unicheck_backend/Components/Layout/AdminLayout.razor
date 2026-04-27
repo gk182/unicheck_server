@@ -1,0 +1,142 @@
+@inherits LayoutComponentBase
+
+<div class="admin-pure-layout font-inter text-slate-800">
+    <nav class="admin-navbar shadow-sm">
+        <div class="admin-nav-brand">
+            <div class="brand-icon">
+                <i class="fa fa-user-shield text-white"></i>
+            </div>
+            <div class="brand-text">
+                <span class="brand-name">UniCheck</span>
+                <span class="brand-tagline">Quản Trị Học Vụ</span>
+            </div>
+        </div>
+        <div class="admin-nav-actions">
+            <span class="me-3 fw-medium text-slate-600"><i class="fa fa-circle-user me-2"></i>Administrator</span>
+            <a href="/logout" class="btn btn-danger btn-sm px-3 rounded-pill fw-medium shadow-sm">
+                <i class="fa fa-sign-out-alt me-1"></i> Đăng xuất
+            </a>
+        </div>
+    </nav>
+    <main class="admin-main-content">
+        <div class="content-wrapper">
+            @Body
+        </div>
+    </main>
+</div>
+
+<!-- Toast notification container -->
+<div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999;"></div>
+
+<style>
+    .admin-pure-layout {
+        background-color: #f1f5f9;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+    .admin-navbar {
+        height: 70px;
+        background-color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 2rem;
+        border-bottom: 1px solid #e2e8f0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+    .admin-nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .admin-nav-brand .brand-icon {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+    }
+    .admin-nav-brand .brand-text {
+        display: flex;
+        flex-direction: column;
+    }
+    .admin-nav-brand .brand-name {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.2;
+    }
+    .admin-nav-brand .brand-tagline {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+    .admin-main-content {
+        flex: 1;
+        padding: 2rem;
+    }
+    .content-wrapper {
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+    }
+    
+    /* Modern Card Styles for Admin */
+    .admin-card {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .admin-card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .admin-form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #475569;
+        margin-bottom: 0.5rem;
+    }
+    .admin-form-control {
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 0.6rem 1rem;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+    .admin-form-control:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        outline: none;
+    }
+    .admin-btn {
+        padding: 0.6rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .admin-btn-primary {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        border: none;
+    }
+    .admin-btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+</style>

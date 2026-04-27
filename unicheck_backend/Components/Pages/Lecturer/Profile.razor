@@ -1,4 +1,12 @@
 @page "/profile"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using Microsoft.AspNetCore.Components.Authorization
+@using unicheck_backend.Services
+@using unicheck_backend.Data
+@using Microsoft.EntityFrameworkCore
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IServiceScopeFactory ScopeFactory
+@inject AuthService AuthService
 
 <PageTitle>Hồ Sơ — UniCheck</PageTitle>
 
@@ -26,11 +34,11 @@
         <hr class="profile-divider" />
         <div class="profile-stats">
             <div class="profile-stat">
-                <span class="stat-val">3</span>
+                <span class="stat-val">@_courseCount</span>
                 <span class="stat-lbl">Lớp học phần</span>
             </div>
             <div class="profile-stat">
-                <span class="stat-val">115</span>
+                <span class="stat-val">@_studentCount</span>
                 <span class="stat-lbl">Sinh viên</span>
             </div>
         </div>
@@ -42,12 +50,6 @@
         <div class="card-panel mb-4">
             <div class="panel-header">
                 <h5 class="panel-title"><i class="fa fa-id-card me-2"></i>Thông Tin Cá Nhân</h5>
-                @if (!_editingInfo)
-                {
-                    <button class="btn btn-outline-primary btn-sm" @onclick="() => _editingInfo = true">
-                        <i class="fa fa-pen me-1"></i>Chỉnh sửa
-                    </button>
-                }
             </div>
             <div class="panel-body">
                 <div class="info-grid">
@@ -65,41 +67,13 @@
                     </div>
                     <div class="info-row">
                         <label class="info-label">Email</label>
-                        @if (_editingInfo)
-                        {
-                            <input type="email" class="form-control form-control-sm"
-                                   @bind="_editEmail" style="max-width:280px" />
-                        }
-                        else
-                        {
-                            <span class="info-value">@_lecturer.Email</span>
-                        }
+                        <span class="info-value">@_lecturer.Email</span>
                     </div>
                     <div class="info-row">
                         <label class="info-label">Số điện thoại</label>
-                        @if (_editingInfo)
-                        {
-                            <input type="tel" class="form-control form-control-sm"
-                                   @bind="_editPhone" style="max-width:180px" />
-                        }
-                        else
-                        {
-                            <span class="info-value">@_lecturer.Phone</span>
-                        }
+                        <span class="info-value">@_lecturer.Phone</span>
                     </div>
                 </div>
-                @if (_editingInfo)
-                {
-                    <div class="mt-3 d-flex gap-2">
-                        <button class="btn btn-primary btn-sm" @onclick="SaveInfo">
-                            <i class="fa fa-save me-1"></i>Lưu thay đổi
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm"
-                                @onclick="() => { _editingInfo = false; }">
-                            Hủy
-                        </button>
-                    </div>
-                }
             </div>
         </div>
 
@@ -148,54 +122,90 @@
 </div>
 
 @code {
-    private bool _editingInfo = false;
     private bool _pwSuccess  = false;
     private string _pwError  = "";
-    private string _editEmail = "";
-    private string _editPhone = "";
     private string _currentPw = "";
     private string _newPw     = "";
     private string _confirmPw = "";
 
-    // Mock data — Sprint 3 thay bằng AuthService / user từ ClaimsPrincipal
-    private LecturerProfile _lecturer = new()
-    {
-        LecturerId = "GV001",
-        FullName   = "TS. Nguyễn Văn Minh",
-        Department = "Khoa Công nghệ Thông tin",
-        Email      = "minhgv@uni.edu.vn",
-        Phone      = "0912 345 678"
-    };
+    private int _userId;
+    private int _courseCount = 0;
+    private int _studentCount = 0;
 
-    protected override void OnInitialized()
+    private LecturerProfile _lecturer = new();
+
+    protected override async Task OnInitializedAsync()
     {
-        _editEmail = _lecturer.Email;
-        _editPhone = _lecturer.Phone;
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity != null && user.Identity.IsAuthenticated)
+        {
+            var userIdStr = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdStr, out var userId))
+            {
+                _userId = userId;
+
+                using var scope = ScopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                var lecturerInfo = await db.Lecturers
+                    .FirstOrDefaultAsync(l => l.UserId == userId);
+
+                if (lecturerInfo != null)
+                {
+                    _lecturer.LecturerId = lecturerInfo.LecturerId.ToString();
+                    _lecturer.FullName = lecturerInfo.FullName;
+                    _lecturer.Department = lecturerInfo.Department ?? "Chưa có khoa";
+                    _lecturer.Email = lecturerInfo.Email;
+                    _lecturer.Phone = "Chưa cập nhật"; // No Phone property in DB Lecturer
+
+                    // Lấy số lượng lớp học phần
+                    _courseCount = await db.CourseClasses.CountAsync(c => c.LecturerId == lecturerInfo.LecturerId);
+
+                    // Lấy số lượng sinh viên trong tất cả các lớp của giảng viên
+                    _studentCount = await db.Enrollments
+                        .Include(e => e.CourseClass)
+                        .Where(e => e.CourseClass != null && e.CourseClass.LecturerId == lecturerInfo.LecturerId)
+                        .Select(e => e.StudentId)
+                        .Distinct()
+                        .CountAsync();
+                }
+            }
+        }
     }
 
-    private void SaveInfo()
-    {
-        _lecturer.Email = _editEmail;
-        _lecturer.Phone = _editPhone;
-        _editingInfo = false;
-        // Sprint 3: gọi AuthService.UpdateProfile()
-    }
-
-    private void ChangePassword()
+    private async Task ChangePassword()
     {
         _pwError   = "";
         _pwSuccess = false;
 
         if (string.IsNullOrWhiteSpace(_currentPw))
-        { _pwError = "Vui lòng nhập mật khẩu hiện tại."; return; }
-        if (_newPw.Length < 8)
-        { _pwError = "Mật khẩu mới phải có ít nhất 8 ký tự."; return; }
+        { 
+            _pwError = "Vui lòng nhập mật khẩu hiện tại."; 
+            return; 
+        }
+        if (string.IsNullOrWhiteSpace(_newPw) || _newPw.Length < 8)
+        { 
+            _pwError = "Mật khẩu mới phải có ít nhất 8 ký tự."; 
+            return; 
+        }
         if (_newPw != _confirmPw)
-        { _pwError = "Mật khẩu xác nhận không khớp."; return; }
+        { 
+            _pwError = "Mật khẩu xác nhận không khớp."; 
+            return; 
+        }
 
-        // Sprint 3: gọi AuthService.ChangePassword()
-        _pwSuccess  = true;
-        _currentPw  = _newPw = _confirmPw = "";
+        bool result = await AuthService.ChangePasswordAsync(_userId, _currentPw, _newPw);
+        if (result)
+        {
+            _pwSuccess = true;
+            _currentPw = _newPw = _confirmPw = "";
+        }
+        else
+        {
+            _pwError = "Mật khẩu hiện tại không đúng hoặc có lỗi xảy ra.";
+        }
     }
 
     private class LecturerProfile

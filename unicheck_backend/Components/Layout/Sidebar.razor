@@ -1,3 +1,6 @@
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
+@inject IServiceScopeFactory ScopeFactory
+
 <nav class="sidebar-nav">
     <!-- Brand -->
 
@@ -24,7 +27,10 @@
         <NavLink class="nav-item" href="/leaves" Match="NavLinkMatch.Prefix">
             <i class="fa fa-file-alt nav-icon"></i>
             <span>Đơn xin nghỉ</span>
-            <span class="nav-badge">2</span>
+            @if (_pendingLeaveCount > 0)
+            {
+                <span class="nav-badge">@_pendingLeaveCount</span>
+            }
         </NavLink>
     </div>
 
@@ -57,3 +63,25 @@
         </NavLink>
     </div>
 </nav>
+
+@code {
+    private int _pendingLeaveCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var lecturerIdClaim = user.FindFirst("LecturerId");
+            if (lecturerIdClaim != null && int.TryParse(lecturerIdClaim.Value, out int lecturerId))
+            {
+                using var scope = ScopeFactory.CreateScope();
+                var leaveService = scope.ServiceProvider.GetRequiredService<unicheck_backend.Services.LeaveService>();
+                var leaves = await leaveService.GetByLecturerAsync(lecturerId);
+                _pendingLeaveCount = leaves.Count(l => l.Status == "PENDING");
+            }
+        }
+    }
+}

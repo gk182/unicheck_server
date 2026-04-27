@@ -7,69 +7,85 @@
 <PageTitle>Đăng nhập — UniCheck</PageTitle>
 
 <div class="login-page">
-    <div class="login-card">
-        <!-- Brand -->
-        <div class="login-brand">
-            <div class="login-logo">
-                <i class="fa fa-check-circle"></i>
-            </div>
-            <div class="login-title">UniCheck</div>
-            <p class="login-subtitle">Hệ thống Điểm Danh Sinh Viên</p>
-        </div>
-
-        <!-- Visible UI Form (Not a real HTML form submission) -->
-        <div class="login-form">
-            <div class="form-group">
-                <label class="form-label">
-                    <i class="fa fa-user me-2"></i>Tên đăng nhập
-                </label>
-                <input @bind="_username"
-                       type="text"
-                       class="form-control login-input"
-                       placeholder="Nhập tên đăng nhập..."
-                       @onkeyup="@(async e => { if(e.Key == "Enter") await ProcessLogin(); })"
-                       required autofocus />
+    <!-- Left Form Section -->
+    <div class="login-left">
+        <div class="login-card">
+            <!-- Brand -->
+            <div class="login-header text-start mb-4">
+                <h2 class="fw-bold mb-2" style="font-size: 1.75rem; color: #111827;">Đăng nhập tài khoản</h2>
+                <p style="color: #6B7280; font-size: 0.95rem;">Nhập thông tin bên dưới để truy cập vào hệ thống</p>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">
-                    <i class="fa fa-lock me-2"></i>Mật khẩu
-                </label>
-                <div class="input-group">
-                    <input @bind="_password"
-                           type="password"
-                           id="passwordInput"
-                           class="form-control login-input"
-                           placeholder="Nhập mật khẩu..."
+            <!-- Visible UI Form -->
+            <div class="login-form">
+                <div class="form-group mb-4">
+                    <label class="form-label fw-semibold" style="color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                        Tên đăng nhập
+                    </label>
+                    <input @bind="_username"
+                           type="text"
+                           class="form-control modern-input"
+                           placeholder="Nhập tên đăng nhập..."
                            @onkeyup="@(async e => { if(e.Key == "Enter") await ProcessLogin(); })"
-                           required />
-                    <button type="button" class="btn btn-outline-secondary"
-                            onclick="togglePassword()">
-                        <i class="fa fa-eye" id="eyeIcon"></i>
-                    </button>
+                           required autofocus />
+                </div>
+
+                <div class="form-group mb-4">
+                    <div class="d-flex justify-content-between align-items-center" style="margin-bottom: 0.5rem;">
+                        <label class="form-label fw-semibold mb-0" style="color: #374151; font-size: 0.9rem;">
+                            Mật khẩu
+                        </label>
+                        <a href="#" class="text-primary text-decoration-none" style="font-size: 0.85rem; font-weight: 500;">
+                            Quên mật khẩu?
+                        </a>
+                    </div>
+                    <div class="input-group">
+                        <input @bind="_password"
+                               type="password"
+                               id="passwordInput"
+                               class="form-control modern-input"
+                               placeholder="Nhập mật khẩu..."
+                               @onkeyup="@(async e => { if(e.Key == "Enter") await ProcessLogin(); })"
+                               required />
+                        <button type="button" class="btn btn-outline-secondary border-start-0"
+                                onclick="togglePassword()" style="border-radius: 0 8px 8px 0; border-color: #D1D5DB; background: white;">
+                            <i class="fa fa-eye" id="eyeIcon" style="color: #6B7280;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="button" class="btn modern-btn-login w-100 mb-4" @onclick="ProcessLogin" disabled="@_isProcessing">
+                    @if (_isProcessing)
+                    {
+                        <i class="fa fa-spinner fa-spin me-2"></i><span>Đang kiểm tra...</span>
+                    }
+                    else
+                    {
+                        <span>Đăng nhập</span>
+                    }
+                </button>
+
+                <!-- Footer -->
+                <div class="text-center" style="font-size: 0.9rem; color: #6B7280;">
+                    Bạn chưa có tài khoản? <a href="#" class="text-primary fw-medium text-decoration-none">Liên hệ ban giám hiệu</a>
                 </div>
             </div>
 
-            <button type="button" class="btn btn-login w-100" @onclick="ProcessLogin" disabled="@_isProcessing">
-                @if (_isProcessing)
-                {
-                    <i class="fa fa-spinner fa-spin me-2"></i><span>Đang kiểm tra...</span>
-                }
-                else
-                {
-                    <i class="fa fa-sign-in-alt me-2"></i><span>Đăng nhập</span>
-                }
-            </button>
+            <!-- Hidden REAL Form for Cookie SignIn -->
+            <form id="hidden-login-form" method="post" action="/Auth/Login" style="display:none">
+                <input name="Username" type="hidden" />
+                <input name="Password" type="hidden" />
+                <input name="ReturnUrl" type="hidden" value="/dashboard" />
+            </form>
         </div>
+    </div>
 
-        <!-- Hidden REAL Form for Cookie SignIn -->
-        <form id="hidden-login-form" method="post" action="/Auth/Login" style="display:none">
-            <input name="Username" type="hidden" />
-            <input name="Password" type="hidden" />
-            <input name="ReturnUrl" type="hidden" value="/dashboard" />
-        </form>
-
-        <p class="login-footer">UniCheck &copy; 2026 — KLTN</p>
+    <!-- Right Image Section -->
+    <div class="login-right">
+        <div class="login-right-content">
+            <h1 class="login-right-title">UniCheck Dashboard</h1>
+            <p class="login-right-desc">Hệ thống quản lý điểm danh sinh viên thông minh và hiện đại dành cho giảng viên.</p>
+        </div>
     </div>
 </div>
 

@@ -1271,19 +1271,69 @@ body {
 .login-page {
   min-height: 100vh;
   display: flex;
+  background: white;
+}
+
+.login-left {
+  flex: 1;
+  display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: radial-gradient(ellipse at 60% 40%, rgba(28, 81, 230, 0.12) 0%, transparent 60%);
+  background: white;
 }
 
 .login-card {
-  background: white;
-  border-radius: 20px;
-  padding: 48px 44px;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+  background: transparent;
+  padding: 48px 24px;
+}
+
+.login-right {
+  flex: 1.2;
+  background-image: url('https://ued.udn.vn/wp-content/uploads/2025/12/Toan-canh-moi-2.jpg');
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-right::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(37, 99, 235, 0.6) 100%);
+}
+
+.login-right-content {
+  position: relative;
+  z-index: 1;
+  color: white;
+  text-align: center;
+  max-width: 500px;
+  padding: 40px;
+}
+
+.login-right-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.login-right-desc {
+  font-size: 16px;
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .login-right {
+    display: none;
+  }
 }
 
 .login-brand {
@@ -2556,3 +2606,54 @@ body {
   transform: translateY(-1px);
   background: #000;
 }
+
+.modern-input {
+  border-radius: 8px !important;
+  border: 1px solid #D1D5DB !important;
+  padding: 10px 14px !important;
+  font-size: 0.95rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.modern-input:focus {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important;
+}
+
+/* Gradient + stroke effect for modern login button */
+.modern-btn-login {
+  background: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%);
+  color: white;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.15); /* Stroke */
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.modern-btn-login::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 50%; height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+  transform: skewX(-20deg);
+  transition: all 0.6s ease;
+}
+
+.modern-btn-login:hover {
+  background: linear-gradient(135deg, #1D4ED8 0%, #172554 100%);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3); /* Brighter stroke on hover */
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.modern-btn-login:hover::before {
+  left: 150%;
+}
+
