@@ -1,4 +1,6 @@
 @inject NavigationManager Nav
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
+@inject IServiceScopeFactory ScopeFactory
 
 @{
     // Lấy page title từ URL
@@ -29,7 +31,10 @@
         <!-- Notification Bell -->
         <a href="/leaves" class="header-icon-btn" title="Đơn xin nghỉ chờ duyệt">
             <i class="fa fa-bell"></i>
-            <span class="notif-badge">2</span>
+            @if (_pendingLeaveCount > 0)
+            {
+                <span class="notif-badge">@_pendingLeaveCount</span>
+            }
         </a>
 
         <!-- User Menu -->
@@ -38,8 +43,8 @@
                 <i class="fa fa-user-tie"></i>
             </div>
             <div class="user-info">
-                <span class="user-name">TS. Nguyễn V. Minh</span>
-                <span class="user-dept">CNTT</span>
+                <span class="user-name">@_fullName</span>
+                <span class="user-dept">Giảng viên</span>
             </div>
             <i class="fa fa-chevron-down user-chevron"></i>
 
@@ -55,3 +60,32 @@
         </div>
     </div>
 </header>
+
+@code {
+    private int _pendingLeaveCount = 0;
+    private string _fullName = "Người dùng";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var nameClaim = user.FindFirst("FullName");
+            if (nameClaim != null)
+            {
+                _fullName = nameClaim.Value;
+            }
+
+            var lecturerIdClaim = user.FindFirst("LecturerId");
+            if (lecturerIdClaim != null && int.TryParse(lecturerIdClaim.Value, out int lecturerId))
+            {
+                using var scope = ScopeFactory.CreateScope();
+                var leaveService = scope.ServiceProvider.GetRequiredService<unicheck_backend.Services.LeaveService>();
+                var leaves = await leaveService.GetByLecturerAsync(lecturerId);
+                _pendingLeaveCount = leaves.Count(l => l.Status == "PENDING");
+            }
+        }
+    }
+}

@@ -26,6 +26,7 @@ public class ScheduleService
             .Include(s => s.AttendanceSessions)
             .Where(s => s.CourseClass.LecturerId == lecturerId && s.Date == today)
             .OrderBy(s => s.StartTime)
+            .AsSplitQuery()
             .ToListAsync();
 
         return schedules.Select(s => 
@@ -89,6 +90,7 @@ public class ScheduleService
             .Include(c => c.Schedules)
                 .ThenInclude(s => s.AttendanceSessions)
             .Where(c => c.LecturerId == lecturerId)
+            .AsSplitQuery()
             .ToListAsync();
 
         return classes.Select(c => 

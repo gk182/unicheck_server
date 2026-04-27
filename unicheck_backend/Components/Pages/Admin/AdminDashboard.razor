@@ -4,38 +4,47 @@
 @using Microsoft.AspNetCore.Authorization
 @inject IJSRuntime JS
 
-<PageTitle>Quan tri hoc vu - UniCheck</PageTitle>
+@layout unicheck_backend.Components.Layout.AdminLayout
 
-<div class="page-header">
-    <div>
-        <h2 class="page-title-text"><i class="fa fa-user-shield me-2"></i>Quan tri hoc vu</h2>
-        <p class="page-subtitle">Tao lop, gan giang vien, chinh lich va them sinh vien vao lop.</p>
-    </div>
-</div>
+<PageTitle>Quản Trị Học Vụ - UniCheck</PageTitle>
 
 @if (!string.IsNullOrWhiteSpace(_message))
 {
-    <div class="alert @(_isError ? "alert-danger" : "alert-success")" role="alert">@_message</div>
+    <div class="alert @(_isError ? "alert-danger bg-danger-subtle text-danger" : "alert-success bg-success-subtle text-success") border-0 shadow-sm rounded-3 mb-4 animate__animated animate__fadeInDown" role="alert">
+        <i class="fa @(_isError ? "fa-circle-xmark" : "fa-check-circle") me-2"></i> @_message
+    </div>
 }
 
-<div class="stats-row">
-    <StatCard Icon="fa-chalkboard" Label="Lop hoc phan" Value="@_classes.Count.ToString()" Color="primary" />
-    <StatCard Icon="fa-user-tie" Label="Giang vien" Value="@_lecturers.Count.ToString()" Color="success" />
-    <StatCard Icon="fa-user-graduate" Label="Sinh vien" Value="@_studentCount.ToString()" Color="warning" />
-    <StatCard Icon="fa-door-open" Label="Phong hoc" Value="@_rooms.Count.ToString()" Color="info" />
-</div>
-
 <div class="row g-4">
-    <div class="col-12 col-xl-6">
-        <div class="card-panel h-100">
-            <div class="panel-header">
-                <h5 class="panel-title"><i class="fa fa-plus-circle me-2"></i>Tao lop hoc phan</h5>
-            </div>
-            <div class="panel-body">
+    <!-- LEFT PANEL: ACTION FORMS -->
+    <div class="col-12 col-xl-4">
+        <!-- Action Tabs -->
+        <ul class="nav nav-pills nav-fill bg-white p-2 rounded-4 shadow-sm mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link rounded-3 @(_activeActionTab == 1 ? "active fw-bold shadow-sm" : "text-secondary")" @onclick="() => _activeActionTab = 1">
+                    <i class="fa fa-layer-group me-1"></i> QL Lớp
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link rounded-3 @(_activeActionTab == 2 ? "active fw-bold shadow-sm" : "text-secondary")" @onclick="() => _activeActionTab = 2">
+                    <i class="fa fa-calendar-alt me-1"></i> Xếp Lịch
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link rounded-3 @(_activeActionTab == 3 ? "active fw-bold shadow-sm" : "text-secondary")" @onclick="() => _activeActionTab = 3">
+                    <i class="fa fa-users me-1"></i> Sinh Viên
+                </button>
+            </li>
+        </ul>
+
+        @if (_activeActionTab == 1)
+        {
+            <div class="admin-card animate__animated animate__fadeIn">
+                <h5 class="admin-card-title"><i class="fa fa-plus-circle text-primary"></i> Khởi tạo lớp học phần</h5>
                 <div class="mb-3">
-                    <label class="form-label">Mon hoc</label>
-                    <select class="form-select" @bind="_createClass.CourseId">
-                        <option value="0">-- Chon mon hoc --</option>
+                    <label class="admin-form-label">Môn học</label>
+                    <select class="form-select admin-form-control" @bind="_createClass.CourseId">
+                        <option value="0">-- Chọn môn học --</option>
                         @foreach (var c in _courses)
                         {
                             <option value="@c.CourseId">@c.CourseCode - @c.CourseName</option>
@@ -43,224 +52,265 @@
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Giang vien</label>
-                    <select class="form-select" @bind="_createClass.LecturerId">
-                        <option value="0">-- Chon giang vien --</option>
+                    <label class="admin-form-label">Giảng viên phụ trách</label>
+                    <select class="form-select admin-form-control" @bind="_createClass.LecturerId">
+                        <option value="0">-- Chọn giảng viên --</option>
                         @foreach (var l in _lecturers)
                         {
                             <option value="@l.LecturerId">@l.FullName (@l.Email)</option>
                         }
                     </select>
                 </div>
-                <div class="row g-2 mb-3">
+                <div class="row g-3 mb-3">
                     <div class="col-4">
-                        <label class="form-label">Hoc ky</label>
-                        <select class="form-select" @bind="_createClass.Semester">
+                        <label class="admin-form-label">Học kỳ</label>
+                        <select class="form-select admin-form-control" @bind="_createClass.Semester">
                             <option value="1">1</option>
                             <option value="2">2</option>
+                            <option value="3">Hè</option>
                         </select>
                     </div>
                     <div class="col-8">
-                        <label class="form-label">Nam hoc</label>
-                        <input class="form-control" @bind="_createClass.AcademicYear" placeholder="2025-2026" />
+                        <label class="admin-form-label">Năm học</label>
+                        <input class="form-control admin-form-control" @bind="_createClass.AcademicYear" placeholder="Ví dụ: 2025-2026" />
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Ma nhom</label>
-                    <input class="form-control" @bind="_createClass.GroupCode" placeholder="N01 / 22-0302" />
+                <div class="mb-4">
+                    <label class="admin-form-label">Mã nhóm</label>
+                    <input class="form-control admin-form-control" @bind="_createClass.GroupCode" placeholder="Ví dụ: N01" />
                 </div>
-                <button class="btn btn-primary" @onclick="CreateClassAsync">Tao lop</button>
+                <button class="btn admin-btn admin-btn-primary w-100" @onclick="CreateClassAsync">
+                    <i class="fa fa-save me-1"></i> Tạo lớp học phần
+                </button>
             </div>
-        </div>
-    </div>
 
-    <div class="col-12 col-xl-6">
-        <div class="card-panel h-100">
-            <div class="panel-header">
-                <h5 class="panel-title"><i class="fa fa-user-pen me-2"></i>Gan giang vien cho lop</h5>
-            </div>
-            <div class="panel-body">
+            <div class="admin-card animate__animated animate__fadeIn">
+                <h5 class="admin-card-title"><i class="fa fa-user-pen text-warning"></i> Điều chỉnh giảng viên</h5>
                 <div class="mb-3">
-                    <label class="form-label">Lop hoc phan</label>
-                    <select class="form-select" @bind="_assignLecturer.ClassId">
-                        <option value="0">-- Chon lop --</option>
+                    <label class="admin-form-label">Lớp học phần</label>
+                    <select class="form-select admin-form-control" @bind="_assignLecturer.ClassId">
+                        <option value="0">-- Chọn lớp --</option>
                         @foreach (var c in _classes)
                         {
-                            <option value="@c.ClassId">#@c.ClassId - @c.CourseCode - @c.GroupCode (@c.AcademicYear)</option>
+                            <option value="@c.ClassId">@c.CourseCode - @c.GroupCode (@c.LecturerName)</option>
                         }
                     </select>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Giang vien moi</label>
-                    <select class="form-select" @bind="_assignLecturer.LecturerId">
-                        <option value="0">-- Chon giang vien --</option>
+                <div class="mb-4">
+                    <label class="admin-form-label">Giảng viên mới</label>
+                    <select class="form-select admin-form-control" @bind="_assignLecturer.LecturerId">
+                        <option value="0">-- Chọn giảng viên --</option>
                         @foreach (var l in _lecturers)
                         {
                             <option value="@l.LecturerId">@l.FullName</option>
                         }
                     </select>
                 </div>
-                <button class="btn btn-warning" @onclick="AssignLecturerAsync">Cap nhat giang vien</button>
+                <button class="btn admin-btn btn-warning w-100 text-white fw-medium" @onclick="AssignLecturerAsync">
+                    <i class="fa fa-exchange-alt me-1"></i> Cập nhật giảng viên
+                </button>
             </div>
-        </div>
-    </div>
-
-    <div class="col-12 col-xl-6">
-        <div class="card-panel h-100">
-            <div class="panel-header">
-                <h5 class="panel-title"><i class="fa fa-calendar-pen me-2"></i>Chinh lich day</h5>
-            </div>
-            <div class="panel-body">
+        }
+        else if (_activeActionTab == 2)
+        {
+            <div class="admin-card animate__animated animate__fadeIn">
+                <h5 class="admin-card-title"><i class="fa fa-calendar-pen text-info"></i> Sắp xếp lịch học</h5>
                 <div class="mb-3">
-                    <label class="form-label">Buoi hoc</label>
-                    <select class="form-select" @bind="_editSchedule.ScheduleId" @bind:after="OnScheduleChangedAsync">
-                        <option value="0">-- Chon buoi hoc --</option>
+                    <label class="admin-form-label">Buổi học (Chọn để sửa)</label>
+                    <select class="form-select admin-form-control" @bind="_editSchedule.ScheduleId" @bind:after="OnScheduleChangedAsync">
+                        <option value="0">-- Chọn buổi học --</option>
                         @foreach (var s in _schedules)
                         {
-                            <option value="@s.ScheduleId">#@s.ScheduleId - @s.CourseCode/@s.GroupCode - @s.Date.ToString("dd/MM/yyyy") (@s.StartTime - @s.EndTime)</option>
+                            <option value="@s.ScheduleId">@s.CourseCode/@s.GroupCode - @s.Date.ToString("dd/MM/yyyy")</option>
                         }
                     </select>
                 </div>
-                <div class="row g-2 mb-3">
+                <div class="mb-3">
+                    <label class="admin-form-label">Ngày học</label>
+                    <input type="text" class="form-control admin-form-control" @bind="_editSchedule.DateText" placeholder="yyyy-MM-dd" />
+                </div>
+                <div class="row g-3 mb-3">
                     <div class="col-6">
-                        <label class="form-label">Ngay hoc</label>
-                        <input type="text" class="form-control" @bind="_editSchedule.DateText" placeholder="yyyy-MM-dd" />
+                        <label class="admin-form-label">Bắt đầu</label>
+                        <input type="text" class="form-control admin-form-control" @bind="_editSchedule.StartText" placeholder="HH:mm" />
                     </div>
-                    <div class="col-3">
-                        <label class="form-label">Bat dau</label>
-                        <input type="text" class="form-control" @bind="_editSchedule.StartText" placeholder="HH:mm" />
-                    </div>
-                    <div class="col-3">
-                        <label class="form-label">Ket thuc</label>
-                        <input type="text" class="form-control" @bind="_editSchedule.EndText" placeholder="HH:mm" />
+                    <div class="col-6">
+                        <label class="admin-form-label">Kết thúc</label>
+                        <input type="text" class="form-control admin-form-control" @bind="_editSchedule.EndText" placeholder="HH:mm" />
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Phong hoc</label>
-                    <select class="form-select" @bind="_editSchedule.RoomId">
-                        <option value="0">-- Chon phong --</option>
+                <div class="mb-4">
+                    <label class="admin-form-label">Phòng học</label>
+                    <select class="form-select admin-form-control" @bind="_editSchedule.RoomId">
+                        <option value="0">-- Chọn phòng --</option>
                         @foreach (var room in _rooms)
                         {
                             <option value="@room.RoomId">@room.RoomName</option>
                         }
                     </select>
                 </div>
-                <button class="btn btn-info" @onclick="UpdateScheduleAsync">Cap nhat lich</button>
+                <button class="btn admin-btn btn-info w-100 text-white fw-medium" @onclick="UpdateScheduleAsync">
+                    <i class="fa fa-check me-1"></i> Lưu thay đổi lịch
+                </button>
             </div>
-        </div>
-    </div>
-
-    <div class="col-12 col-xl-6">
-        <div class="card-panel h-100">
-            <div class="panel-header">
-                <h5 class="panel-title"><i class="fa fa-users-medical me-2"></i>Them sinh vien vao lop</h5>
-            </div>
-            <div class="panel-body">
+        }
+        else if (_activeActionTab == 3)
+        {
+            <div class="admin-card animate__animated animate__fadeIn">
+                <h5 class="admin-card-title"><i class="fa fa-user-plus text-success"></i> Thêm sinh viên vào lớp</h5>
                 <div class="mb-3">
-                    <label class="form-label">Lop hoc phan</label>
-                    <select class="form-select" @bind="_enroll.ClassId">
-                        <option value="0">-- Chon lop --</option>
+                    <label class="admin-form-label">Lớp học phần</label>
+                    <select class="form-select admin-form-control" @bind="_enroll.ClassId">
+                        <option value="0">-- Chọn lớp --</option>
                         @foreach (var c in _classes)
                         {
-                            <option value="@c.ClassId">#@c.ClassId - @c.CourseCode - @c.GroupCode</option>
+                            <option value="@c.ClassId">@c.CourseCode - @c.GroupCode</option>
                         }
                     </select>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Danh sach MSSV (dau phay/xuong dong)</label>
-                    <textarea class="form-control" rows="4" @bind="_enroll.StudentIdsRaw" placeholder="3120222001,3120222002"></textarea>
+                <div class="mb-4">
+                    <label class="admin-form-label">Danh sách MSSV (cách nhau bởi dấu phẩy hoặc xuống dòng)</label>
+                    <textarea class="form-control admin-form-control" rows="4" @bind="_enroll.StudentIdsRaw" placeholder="3120222001&#10;3120222002"></textarea>
                 </div>
-                <button class="btn btn-success me-2" @onclick="EnrollStudentsAsync">Them vao lop</button>
+                <button class="btn admin-btn btn-success w-100 mb-4" @onclick="EnrollStudentsAsync">
+                    <i class="fa fa-user-check me-1"></i> Thêm sinh viên
+                </button>
+                
+                <hr class="text-secondary" />
+                
+                <h6 class="mt-3 mb-3 fw-bold text-secondary"><i class="fa fa-file-csv me-2"></i>Hoặc nhập từ CSV</h6>
+                <div class="mb-3">
+                    <textarea class="form-control admin-form-control" rows="3" @bind="_enroll.CsvContent" placeholder="Chỉ cần dán nội dung CSV (cột đầu tiên là MSSV)"></textarea>
+                </div>
+                <button class="btn admin-btn btn-outline-secondary w-100" @onclick="ImportCsvAsync">
+                    <i class="fa fa-upload me-1"></i> Import CSV
+                </button>
             </div>
-            <hr class="my-0" />
-            <div class="panel-body">
-                <h6 class="mb-3"><i class="fa fa-file-csv me-2"></i>Import CSV enrollment</h6>
-                <div class="mb-3">
-                    <label class="form-label">Noi dung CSV (cot dau la MSSV, co the co header)</label>
-                    <textarea class="form-control" rows="5" @bind="_enroll.CsvContent" placeholder="studentId&#10;3120222001&#10;3120222002"></textarea>
+        }
+    </div>
+
+    <!-- RIGHT PANEL: DATA TABLES -->
+    <div class="col-12 col-xl-8">
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="admin-card p-3 mb-0 text-center">
+                    <div class="text-primary fs-3 mb-1"><i class="fa fa-chalkboard"></i></div>
+                    <div class="fw-bold fs-4 text-slate-800">@_classes.Count</div>
+                    <div class="text-slate-500 small">Lớp học phần</div>
                 </div>
-                <button class="btn btn-outline-success" @onclick="ImportCsvAsync">Import CSV</button>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="admin-card p-3 mb-0 text-center">
+                    <div class="text-success fs-3 mb-1"><i class="fa fa-user-tie"></i></div>
+                    <div class="fw-bold fs-4 text-slate-800">@_lecturers.Count</div>
+                    <div class="text-slate-500 small">Giảng viên</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="admin-card p-3 mb-0 text-center">
+                    <div class="text-warning fs-3 mb-1"><i class="fa fa-user-graduate"></i></div>
+                    <div class="fw-bold fs-4 text-slate-800">@_studentCount</div>
+                    <div class="text-slate-500 small">Sinh viên</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="admin-card p-3 mb-0 text-center">
+                    <div class="text-info fs-3 mb-1"><i class="fa fa-door-open"></i></div>
+                    <div class="fw-bold fs-4 text-slate-800">@_rooms.Count</div>
+                    <div class="text-slate-500 small">Phòng học</div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
 
-<div class="card-panel mt-4">
-    <div class="panel-header">
-        <h5 class="panel-title"><i class="fa fa-table me-2"></i>Danh sach lop hoc phan</h5>
-    </div>
-    <div class="panel-body table-responsive">
-        <table class="table table-hover align-middle">
-            <thead>
-                <tr>
-                    <th>#ClassId</th>
-                    <th>Mon hoc</th>
-                    <th>Nhom</th>
-                    <th>Hoc ky</th>
-                    <th>Nam hoc</th>
-                    <th>Giang vien</th>
-                    <th>SV</th>
-                    <th>Buoi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var c in _classes)
-                {
-                    <tr>
-                        <td>@c.ClassId</td>
-                        <td>@c.CourseCode - @c.CourseName</td>
-                        <td>@c.GroupCode</td>
-                        <td>@c.Semester</td>
-                        <td>@c.AcademicYear</td>
-                        <td>@c.LecturerName</td>
-                        <td>@c.EnrollmentCount</td>
-                        <td>@c.ScheduleCount</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-</div>
+        <div class="admin-card">
+            <!-- Tabs cho Bảng Dữ Liệu -->
+            <ul class="nav nav-tabs mb-3" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link @(_activeTableTab == 1 ? "active fw-bold text-primary" : "text-secondary")" @onclick="() => _activeTableTab = 1">
+                        <i class="fa fa-list me-1"></i> Danh sách Lớp Học
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link @(_activeTableTab == 2 ? "active fw-bold text-primary" : "text-secondary")" @onclick="() => _activeTableTab = 2">
+                        <i class="fa fa-calendar-alt me-1"></i> Danh sách Lịch Dạy
+                    </button>
+                </li>
+            </ul>
 
-<div class="card-panel mt-4">
-    <div class="panel-header d-flex justify-content-between align-items-center">
-        <h5 class="panel-title mb-0"><i class="fa fa-calendar-week me-2"></i>Danh sach lich day</h5>
-        <select class="form-select form-select-sm" style="max-width: 280px" @bind="_scheduleFilterClassId" @bind:after="OnScheduleFilterChangedAsync">
-            <option value="0">Tat ca lop</option>
-            @foreach (var c in _classes)
-            {
-                <option value="@c.ClassId">#@c.ClassId - @c.CourseCode - @c.GroupCode</option>
-            }
-        </select>
-    </div>
-    <div class="panel-body table-responsive">
-        <table class="table table-hover align-middle">
-            <thead>
-                <tr>
-                    <th>#ScheduleId</th>
-                    <th>Class</th>
-                    <th>Mon/Nhom</th>
-                    <th>Ngay</th>
-                    <th>Bat dau</th>
-                    <th>Ket thuc</th>
-                    <th>Phong</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var s in _schedules)
+            <div class="table-responsive">
+                @if (_activeTableTab == 1)
                 {
-                    <tr>
-                        <td>@s.ScheduleId</td>
-                        <td>@s.ClassId</td>
-                        <td>@s.CourseCode / @s.GroupCode</td>
-                        <td>@s.Date.ToString("dd/MM/yyyy")</td>
-                        <td>@s.StartTime</td>
-                        <td>@s.EndTime</td>
-                        <td>@s.RoomName</td>
-                    </tr>
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light text-secondary font-sm">
+                            <tr>
+                                <th>ID</th>
+                                <th>Môn học</th>
+                                <th>Nhóm</th>
+                                <th>Học kỳ</th>
+                                <th>Giảng viên</th>
+                                <th>SV</th>
+                                <th>Buổi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in _classes)
+                            {
+                                <tr>
+                                    <td class="fw-medium">#@c.ClassId</td>
+                                    <td>
+                                        <div class="fw-bold text-slate-800">@c.CourseName</div>
+                                        <div class="text-slate-500 small">@c.CourseCode</div>
+                                    </td>
+                                    <td><span class="badge bg-light text-dark border">@c.GroupCode</span></td>
+                                    <td>HK @c.Semester<br><span class="text-slate-500 small">@c.AcademicYear</span></td>
+                                    <td>@c.LecturerName</td>
+                                    <td><span class="badge bg-success-subtle text-success">@c.EnrollmentCount</span></td>
+                                    <td><span class="badge bg-info-subtle text-info">@c.ScheduleCount</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 }
-            </tbody>
-        </table>
+                else if (_activeTableTab == 2)
+                {
+                    <div class="d-flex justify-content-end mb-3">
+                        <select class="form-select form-select-sm" style="max-width: 300px" @bind="_scheduleFilterClassId" @bind:after="OnScheduleFilterChangedAsync">
+                            <option value="0">Tất cả lớp học phần</option>
+                            @foreach (var c in _classes)
+                            {
+                                <option value="@c.ClassId">@c.CourseCode - @c.GroupCode</option>
+                            }
+                        </select>
+                    </div>
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light text-secondary font-sm">
+                            <tr>
+                                <th>Lớp/Nhóm</th>
+                                <th>Ngày</th>
+                                <th>Giờ học</th>
+                                <th>Phòng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var s in _schedules)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-slate-800">@s.CourseCode</div>
+                                        <div class="text-slate-500 small">Nhóm @s.GroupCode</div>
+                                    </td>
+                                    <td class="fw-medium">@s.Date.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">@s.StartTime.ToString(@"hh\:mm") - @s.EndTime.ToString(@"hh\:mm")</span>
+                                    </td>
+                                    <td>@s.RoomName</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
     </div>
 </div>
 
@@ -269,6 +319,9 @@
 
     private string _message = string.Empty;
     private bool _isError;
+
+    private int _activeActionTab = 1;
+    private int _activeTableTab = 1;
 
     private int _studentCount;
     private int _scheduleFilterClassId;

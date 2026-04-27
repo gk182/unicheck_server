@@ -20,6 +20,7 @@ public class ClassService
             .Include(c => c.Course)
             .Include(c => c.Enrollments).ThenInclude(e => e.Student)
             .Include(c => c.Schedules).ThenInclude(s => s.AttendanceSessions).ThenInclude(asess => asess.Attendances)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(c => c.ClassId == classId);
 
         if (cls == null) return null;

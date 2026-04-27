@@ -1,9 +1,263 @@
 @page "/"
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+@layout unicheck_backend.Components.Pages.Auth.AuthLayout
 @inject NavigationManager Nav
 
-@code {
-    protected override void OnInitialized()
-    {
-        Nav.NavigateTo("/dashboard", forceLoad: true);
+<PageTitle>UniCheck - Giải pháp Điểm danh Toàn diện</PageTitle>
+
+<div class="landing-page font-inter text-slate-800">
+    <!-- Navbar -->
+    <nav class="landing-nav fixed-top bg-white/90 backdrop-blur-md shadow-sm transition-all" style="backdrop-filter: blur(12px); border-bottom: 1px solid rgba(229, 231, 235, 0.5); background-color: rgba(255,255,255,0.95);">
+        <div class="container d-flex justify-content-between align-items-center py-3">
+            <div class="landing-brand d-flex align-items-center gap-2">
+                <div class="brand-icon-landing bg-primary text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="fa fa-check-circle fs-5"></i>
+                </div>
+                <span class="fw-bold fs-4 text-slate-900 font-poppins">UniCheck</span>
+            </div>
+            
+            <div class="d-none d-md-flex gap-4 fw-medium text-slate-600">
+                <a href="#features" class="text-decoration-none text-slate-600 hover-text-primary transition-colors">Tính năng</a>
+                <a href="#how-it-works" class="text-decoration-none text-slate-600 hover-text-primary transition-colors">Cách hoạt động</a>
+            </div>
+
+            <div>
+                <a href="/login" class="btn btn-primary fw-semibold px-4 py-2 rounded-lg shadow-sm hover-shadow-md transition-all d-flex align-items-center gap-2">
+                    Giảng viên đăng nhập <i class="fa fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="landing-hero pt-5 mt-5">
+        <div class="container min-vh-75 d-flex align-items-center py-5">
+            <div class="row align-items-center w-100">
+                <!-- Left Content -->
+                <div class="col-lg-6 hero-content pe-lg-5 mb-5 mb-lg-0">
+                    <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill bg-primary bg-opacity-10 text-primary fw-medium mb-4" style="font-size: 0.9rem; border: 1px solid rgba(37, 99, 235, 0.2);">
+                        <span class="pulse-dot bg-primary rounded-circle" style="width: 8px; height: 8px;"></span>
+                        Nền tảng Quản lý Chuyên cần Hiện đại
+                    </div>
+                    <h1 class="fw-bold text-slate-900 mb-4 font-poppins" style="font-size: 3.5rem; line-height: 1.15; letter-spacing: -1px;">
+                        Số hóa <span class="text-primary position-relative">điểm danh<svg class="position-absolute w-100 h-100" style="bottom: -10px; left: 0; z-index: -1;" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0,15 Q100,0 200,15" fill="none" stroke="#93C5FD" stroke-width="8" stroke-linecap="round"/></svg></span><br/>tại trường Đại học
+                    </h1>
+                    <p class="text-slate-500 mb-5 fs-5" style="line-height: 1.6; max-width: 520px;">
+                        Giải pháp tối ưu giúp giảng viên tiết kiệm 80% thời gian điểm danh trên lớp. Hỗ trợ sinh viên theo dõi chuyên cần và xin phép nghỉ học hoàn toàn trực tuyến.
+                    </p>
+                    
+                    <div class="d-flex align-items-center gap-4 p-4 rounded-4 bg-white shadow-sm border" style="max-width: 450px;">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://unicheck.edu.vn/app" alt="QR Code tải app" class="rounded border p-1" style="width: 100px; height: 100px;" />
+                        <div>
+                            <h5 class="fw-bold text-slate-800 mb-1">Dành cho Sinh viên</h5>
+                            <p class="text-slate-500 fs-6 mb-0">Quét mã QR để tải App ngay và trải nghiệm sự tiện lợi thay vì thẻ giấy.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Content (Mockup) -->
+                <div class="col-lg-6 position-relative text-center">
+                    <!-- Abstract Background -->
+                    <div class="position-absolute bg-primary bg-opacity-10 rounded-circle blur-3xl" style="width: 450px; height: 450px; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: -1;"></div>
+                    
+                    <div class="position-relative d-inline-block mt-4">
+                        <img src="https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=400&q=80" 
+                             alt="Mobile App Demo" 
+                             class="rounded-5 shadow-2xl position-relative z-1" 
+                             style="border: 10px solid #0F172A; height: 620px; width: 310px; object-fit: cover;" />
+                        
+                        <!-- Floating Card 1 -->
+                        <div class="floating-card position-absolute bg-white rounded-4 shadow-lg p-3 d-flex align-items-center gap-3 z-2" 
+                             style="bottom: 15%; left: -25%; animation: floatY 4s ease-in-out infinite;">
+                            <div class="icon-box bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="fa fa-check fs-5"></i>
+                            </div>
+                            <div class="text-start">
+                                <div class="fw-bold fs-5 text-slate-800 line-height-1 mb-1">Thành công</div>
+                                <div class="text-slate-500" style="font-size: 0.85rem;">Điểm danh thành công</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Floating Card 2 -->
+                        <div class="floating-card position-absolute bg-white rounded-4 shadow-lg p-3 d-flex align-items-center gap-3 z-2" 
+                             style="top: 25%; right: -25%; animation: floatY 4s ease-in-out infinite reverse;">
+                            <div class="icon-box bg-blue-100 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                <i class="fa fa-envelope-open-text fs-5"></i>
+                            </div>
+                            <div class="text-start">
+                                <div class="fw-bold fs-6 text-slate-800 line-height-1 mb-1">Đơn xin nghỉ mới</div>
+                                <div class="text-slate-500" style="font-size: 0.85rem;">Nguyễn Văn A - IT1</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-5 bg-slate-50 border-top border-bottom">
+        <div class="container py-5">
+            <div class="text-center mb-5">
+                <span class="text-primary fw-bold text-uppercase tracking-wider fs-7">Tính năng cốt lõi</span>
+                <h2 class="fw-bold text-slate-900 mt-2 font-poppins fs-1">Giải quyết mọi bài toán quản lý lớp</h2>
+                <p class="text-slate-500 mt-3 mx-auto fs-5" style="max-width: 600px;">Hệ thống cung cấp đầy đủ công cụ giúp giảng viên và sinh viên tương tác dễ dàng trong quá trình học tập.</p>
+            </div>
+            
+            <div class="row g-4 mt-4">
+                <!-- Feature 1 -->
+                <div class="col-md-4">
+                    <div class="feature-card h-100 p-4 bg-white rounded-4 shadow-sm border hover-shadow-lg transition-all text-center">
+                        <div class="mx-auto bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mb-4" style="width: 70px; height: 70px;">
+                            <i class="fa fa-qrcode fs-2"></i>
+                        </div>
+                        <h4 class="fw-bold text-slate-800 mb-3">Điểm danh qua QR Code</h4>
+                        <p class="text-slate-500 mb-0">Giảng viên chỉ cần tạo mã QR trên web. Sinh viên dùng app quét mã để ghi nhận có mặt tức thì, chống học hộ hiệu quả.</p>
+                    </div>
+                </div>
+                <!-- Feature 2 -->
+                <div class="col-md-4">
+                    <div class="feature-card h-100 p-4 bg-white rounded-4 shadow-sm border hover-shadow-lg transition-all text-center">
+                        <div class="mx-auto bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center mb-4" style="width: 70px; height: 70px;">
+                            <i class="fa fa-file-signature fs-2"></i>
+                        </div>
+                        <h4 class="fw-bold text-slate-800 mb-3">Duyệt đơn xin phép Online</h4>
+                        <p class="text-slate-500 mb-0">Loại bỏ hoàn toàn giấy tờ. Sinh viên nộp đơn nghỉ phép kèm minh chứng ngay trên điện thoại, giảng viên duyệt bằng 1 click.</p>
+                    </div>
+                </div>
+                <!-- Feature 3 -->
+                <div class="col-md-4">
+                    <div class="feature-card h-100 p-4 bg-white rounded-4 shadow-sm border hover-shadow-lg transition-all text-center">
+                        <div class="mx-auto bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center mb-4" style="width: 70px; height: 70px;">
+                            <i class="fa fa-chart-pie fs-2"></i>
+                        </div>
+                        <h4 class="fw-bold text-slate-800 mb-3">Thống kê & Báo cáo</h4>
+                        <p class="text-slate-500 mb-0">Hệ thống tự động tính toán tỷ lệ chuyên cần. Cảnh báo tự động sinh viên nghỉ quá số buổi quy định. Xuất file Excel nhanh chóng.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="how-it-works" class="py-5">
+        <div class="container py-5">
+            <div class="row align-items-center">
+                <div class="col-lg-5 pe-lg-5 mb-5 mb-lg-0">
+                    <h2 class="fw-bold text-slate-900 mb-4 font-poppins fs-1">Quy trình vận hành cực kỳ đơn giản</h2>
+                    <p class="text-slate-500 fs-5 mb-4">Không cần mất nhiều thời gian để làm quen. Hệ thống được thiết kế với tiêu chí: Trực quan, Nhanh chóng và Chính xác.</p>
+                    
+                    <div class="step-list d-flex flex-column gap-4 mt-5">
+                        <div class="d-flex gap-4">
+                            <div class="step-number bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-5 flex-shrink-0" style="width: 45px; height: 45px; box-shadow: 0 4px 10px rgba(37,99,235,0.3);">1</div>
+                            <div>
+                                <h5 class="fw-bold text-slate-800">Tạo phiên điểm danh</h5>
+                                <p class="text-slate-500 mb-0">Giảng viên đăng nhập Web, chọn môn học và bấm nút "Mở điểm danh". Một mã QR sẽ xuất hiện trên màn hình chiếu.</p>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-4">
+                            <div class="step-number bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-5 flex-shrink-0" style="width: 45px; height: 45px; box-shadow: 0 4px 10px rgba(37,99,235,0.3);">2</div>
+                            <div>
+                                <h5 class="fw-bold text-slate-800">Sinh viên quét mã</h5>
+                                <p class="text-slate-500 mb-0">Sinh viên mở App UniCheck trên điện thoại và quét mã QR. Hệ thống ghi nhận trạng thái có mặt kèm theo thời gian thực.</p>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-4">
+                            <div class="step-number bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-5 flex-shrink-0" style="width: 45px; height: 45px; box-shadow: 0 4px 10px rgba(37,99,235,0.3);">3</div>
+                            <div>
+                                <h5 class="fw-bold text-slate-800">Hoàn tất & Lưu trữ</h5>
+                                <p class="text-slate-500 mb-0">Giảng viên đóng phiên. Dữ liệu lập tức được đồng bộ và lưu trữ an toàn trên máy chủ. Sẵn sàng để xuất báo cáo cuối kỳ.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-7 text-center">
+                    <img src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=800&q=80" alt="Students in class" class="img-fluid rounded-4 shadow-lg w-100" style="object-fit: cover; height: 500px;" />
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-300 py-5">
+        <div class="container py-4">
+            <div class="row gy-4">
+                <div class="col-lg-4">
+                    <div class="d-flex align-items-center gap-2 mb-4">
+                        <i class="fa fa-check-circle fs-3 text-primary"></i>
+                        <span class="fw-bold fs-3 text-white font-poppins">UniCheck</span>
+                    </div>
+                    <p class="text-slate-400 mb-4" style="max-width: 300px;">Hệ thống điểm danh thông minh tiên phong áp dụng công nghệ số vào giáo dục đại học.</p>
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <h5 class="text-white fw-bold mb-4">Sản phẩm</h5>
+                    <ul class="list-unstyled d-flex flex-column gap-3">
+                        <li><a href="#" class="text-slate-400 text-decoration-none hover-text-white transition-colors">Web Giảng viên</a></li>
+                        <li><a href="#" class="text-slate-400 text-decoration-none hover-text-white transition-colors">App Sinh viên</a></li>
+                        <li><a href="#features" class="text-slate-400 text-decoration-none hover-text-white transition-colors">Tính năng</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <h5 class="text-white fw-bold mb-4">Hỗ trợ</h5>
+                    <ul class="list-unstyled d-flex flex-column gap-3">
+                        <li><a href="#" class="text-slate-400 text-decoration-none hover-text-white transition-colors">Tài liệu HDSD</a></li>
+                        <li><a href="#" class="text-slate-400 text-decoration-none hover-text-white transition-colors">Liên hệ IT</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-4 col-md-4">
+                    <h5 class="text-white fw-bold mb-4">Tải ứng dụng sinh viên</h5>
+                    <div class="bg-white p-2 rounded d-inline-block">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://unicheck.edu.vn/app" alt="QR Code" style="width: 100px; height: 100px;" />
+                    </div>
+                </div>
+            </div>
+            <div class="border-top border-slate-800 mt-5 pt-4 d-flex justify-content-between align-items-center">
+                <p class="mb-0 text-slate-500">© @DateTime.Now.Year UniCheck. Đồ án KLTN.</p>
+                <div class="d-flex gap-3">
+                    <a href="#" class="text-slate-400 hover-text-white fs-5"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="text-slate-400 hover-text-white fs-5"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<style>
+    /* Color Palette Extended */
+    .text-slate-900 { color: #0f172a !important; }
+    .text-slate-800 { color: #1e293b !important; }
+    .text-slate-600 { color: #475569 !important; }
+    .text-slate-500 { color: #64748b !important; }
+    .text-slate-400 { color: #94a3b8 !important; }
+    .text-slate-300 { color: #cbd5e1 !important; }
+    .bg-slate-900 { background-color: #0f172a !important; }
+    .bg-slate-50 { background-color: #f8fafc !important; }
+    .border-slate-800 { border-color: #1e293b !important; }
+    .bg-blue-100 { background-color: #dbeafe !important; }
+    
+    /* Utilities */
+    .font-poppins { font-family: 'Poppins', sans-serif; }
+    .font-inter { font-family: 'Inter', sans-serif; }
+    .blur-3xl { filter: blur(64px); }
+    .tracking-wider { letter-spacing: 0.05em; }
+    .fs-7 { font-size: 0.875rem; }
+    .line-height-1 { line-height: 1.2; }
+    .transition-all { transition: all 0.3s ease; }
+    .transition-colors { transition: color 0.2s ease, background-color 0.2s ease; }
+    .hover-text-primary:hover { color: #2563EB !important; }
+    .hover-text-white:hover { color: #ffffff !important; }
+    .hover-shadow-md:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); transform: translateY(-1px); }
+    .hover-shadow-lg:hover { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); transform: translateY(-4px); }
+
+    /* Animations */
+    @@keyframes floatY {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-15px); }
     }
-}
+    
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    .pulse-dot { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+</style>
