@@ -139,10 +139,10 @@ public static class DbSeeder
         await db.SaveChangesAsync();
 
         // ==========================================
-        // 6. TẠO LỊCH HỌC QUÁ KHỨ VÀ DỮ LIỆU ĐIỂM DANH LỊCH SỬ (15 TUẦN)
+        // 6. TẠO LỊCH HỌC TỪ HÔM NAY TRỞ ĐI ĐỂ DỄ TEST
         // ==========================================
         var today = DateTime.Today;
-        var semesterStartDate = today.AddDays(-(int)today.DayOfWeek + (int)DayOfWeek.Monday).AddDays(-35); // Lùi 5 tuần
+        var semesterStartDate = today;
         
         var scheduleTemplates = new[] {
             new { ClassObj = classMain, DayOffset = 0, Start = new TimeSpan(7, 15, 0), End = new TimeSpan(9, 30, 0), Room = rooms[0] }, // T2
@@ -158,7 +158,7 @@ public static class DbSeeder
             {
                 var classDate = weekStartDate.AddDays(tpl.DayOffset);
 
-                if (classDate < today)
+                if (classDate >= today)
                 {
                     var schedule = new Schedule
                     {
@@ -226,19 +226,44 @@ public static class DbSeeder
         await db.SaveChangesAsync();
 
         // ==========================================
-        // 7. CA HỌC GIẢ LẬP ĐỂ TEST NGAY LÚC NÀY (01:15 AM)
+        // 7. CA TEST HIỆN TẠI VÀ CA SẮP TỚI
         // ==========================================
-        // CHỈ TẠO LỊCH HỌC. Giảng viên sẽ tự đăng nhập App để bấm nút "Mở điểm danh"
-        
-        var schedTestNight = new Schedule 
-        { 
-            ClassId = classMain.ClassId, 
-            RoomId = rooms[0].RoomId, // B3-101
-            Date = today, 
-            StartTime = new TimeSpan(1, 15, 0), // 01:15 AM
-            EndTime = new TimeSpan(3, 0, 0)    // 03:00 AM
+        var now = DateTime.Now;
+        var currentStart = now.AddMinutes(-5);
+        if (currentStart.Date != now.Date)
+        {
+            currentStart = today.AddHours(8);
+        }
+
+        var currentEnd = currentStart.AddHours(1);
+        var nextStart = currentStart.AddHours(2);
+        if (nextStart.Date != currentStart.Date)
+        {
+            nextStart = currentStart.Date.AddHours(10);
+        }
+
+        var nextEnd = nextStart.AddHours(1);
+
+        var currentSchedule = new Schedule
+        {
+            ClassId = classMain.ClassId,
+            RoomId = rooms[0].RoomId,
+            Date = currentStart.Date,
+            StartTime = currentStart.TimeOfDay,
+            EndTime = currentEnd.TimeOfDay
         };
-        db.Schedules.Add(schedTestNight);
+        db.Schedules.Add(currentSchedule);
+
+        var nextSchedule = new Schedule
+        {
+            ClassId = classAI.ClassId,
+            RoomId = rooms[1].RoomId,
+            Date = nextStart.Date,
+            StartTime = nextStart.TimeOfDay,
+            EndTime = nextEnd.TimeOfDay
+        };
+        db.Schedules.Add(nextSchedule);
+
         await db.SaveChangesAsync();
 
         // Đã xóa phần tạo AttendanceSession tự động.
